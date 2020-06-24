@@ -48,6 +48,30 @@ def poisson_ditree(lam,n_max=100):
         current_gen=new_gen.copy()
     return G,root
 
+def directify(G,root):
+    """
+    Returns the DiGraph that is obtained by directing all edges of G "away" from
+    the "root", i.e. form the node with the smaller to the one with the larger
+    smallest distance to "root".
+    ----------------------------------------------------------------------------
+    G: nx.Graph (or nx.DiGraph); shouldn't have (undirected/weak) cycles
+    # TODO: There might still be a way to do this for any DAG.
+    # TODO: Check for cycles initally.
+    root: Node in G. In the returned DiGraph, the distance to 'root' will increase
+    along every arc.
+    ----------------------------------------------------------------------------
+    returns: tuple (out,root) with "out" the nx.Digraph with edges pointing away
+    from "root", and the root node.
+    """
+    out = nx.DiGraph()
+    for edge in G.edges(data=False):
+        if nx.shortest_path_length(G,edge[0],root)<nx.shortest_path_length(G,edge[1],root):
+            out.add_edge(edge[0],edge[1])
+        else:
+            out.add_edge(edge[1],edge[0])
+    return out,root
+
+
 def uniform_ditree(n,seed=None):
     G_temp=nx.generators.random_tree(n,seed)
     G=nx.DiGraph()

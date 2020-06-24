@@ -9,9 +9,10 @@ walker=rw.walker(G,0.2,root)
 
 walker.set_weights()
 
-A = nx.to_numpy_matrix(walker.G,weight='prob')
-print('Raisin to power!')
-print(np.linalg.matrix_power(A,1000))
+walker.step()
+#A = nx.to_numpy_matrix(walker.G,weight='prob')
+#print('Raisin to power!')
+#print(np.linalg.matrix_power(A,1000))
 """
 print(nx.to_numpy_matrix(walker.G,walker.G.nodes,weight='prob'))
 G=walker.G

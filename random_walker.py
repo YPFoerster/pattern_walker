@@ -38,12 +38,15 @@ class walker:
 
 
     def step(self):
-        #print('t=',self.t)
-        children,parent,probs=self.get_probs(self.x)
-        print([probs[x] for x  in children+parent])
-        self.x = np.random.choice( children+parent,p=[probs[x] for x  in children+parent] )
+        out_edges_list=self.G.out_edges(self.x,'prob')
+        self.x = np.random.choice( [x[1] for x in out_edges_list],p=[x[2] for x  in out_edges_list] )
         self.trace.append(self.x)
         self.t+=1
+
+    def reset(self):
+        self.x=self.trace[0]
+        self.trace=[]
+        self.t=0
 
 def hamming_dist(a,b):
     #return np.count_nonzero(np.array(a)!=np.array(b))
@@ -61,10 +64,12 @@ class patternWalker(walker):
         self.G.nodes[self.root]['pattern']=np.random.randint(0,2,self.pattern_len)
         self.set_patterns()
         if search_for is None:
-            node=np.random.choice(self.G.nodes)
-            self.searched_pattern=self.G.nodes[node]['pattern']
+            self.searched_node=np.random.choice(self.G.nodes)
+            self.searched_pattern=self.G.nodes[self.searched_node]['pattern']
         else:
-            self.searched_pattern=search_for
+            self.searched_node=search_for
+            self.searched_pattern=self.G.nodes[self.searched_node]['pattern']
+
 
     def set_patterns(self):
         last_patterned_gen=[self.root]
