@@ -1,11 +1,19 @@
 import random_walker as rw
 from dag_exps import poisson_ditree,directify
 import networkx as nx
+from networkx.generators import balanced_tree
 import numpy as np
 import matplotlib.pyplot as plt
 
 #np.random.seed(0)
-G,root=poisson_ditree(2.,100)
+G=balanced_tree(3,5)
+root=None
+#root is the inly node in G with degree r, all others have degree r+1.
+for node in G.nodes():
+    if nx.degree(G,node)==3:
+        root=node
+        break
+G=directify(G,root)[0]
 walker=rw.patternWalker(G,root,200,0.1)
 walker.set_weights()
 #np.random.seed()
