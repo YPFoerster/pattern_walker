@@ -4,6 +4,7 @@ import networkx as nx
 from networkx.generators import balanced_tree
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime
 
 r=3 #offspring number
 h=5 #height
@@ -11,62 +12,52 @@ gamma=0.2 #mutation rate
 N=100 #bits in a pattern; must be adapted to ensure uniqueness of patterns
 number_of_samples=5000
 max_time=5000
-G=balanced_tree(r,h)
-root=None
-#root is the inly node in G with degree r, all others have degree r+1.
-for node in G.nodes():
-    if nx.degree(G,node)==r:
-        root=node
-        break
-G=directify(G,root)[0]
-target = leaves(G)[0]
-walker=rw.patternWalker(G.copy(),root,N,gamma,search_for=target)
-print('Number of duplicate patterns: ', rw.count_pattern_duplicates(walker))
-walker.set_weights()
 
-fpts_fixed_pattern=[]
-fpts_varying_pattern=[]
+with open('log.out',mode='a') as f:
+    f.write("########################################################################\n")
+    for r in [5,7]:
+        for h in [3,5,7]:
+            for gamma in [0.2,0.5,0.8]:
+                name_string='r{r}h{h}gamma{gamma}N{N}'.format(r=r,h=h,gamma=str(round(gamma,2)).replace('.','-'),N=N,number_of_samples=number_of_samples, max_time=max_time)
+                now=datetime.datetime.now()
+                f.write(now.strftime("#%Y-%m-%d %H:%M:%S")+'\n')
+                f.write(name_string+'\n')
+                G=balanced_tree(r,h)
+                root=None
+                #root is the inly node in G with degree r, all others have degree r+1.
+                for node in G.nodes():
+                    if nx.degree(G,node)==r:
+                        root=node
+                        break
+                G=directify(G,root)[0]
+                target = leaves(G)[0]
+                walker=rw.patternWalker(G.copy(),root,N,gamma,search_for=target)
+                f.write('Number of duplicate patterns: '+str(rw.count_pattern_duplicates(walker))+'\n')
+                walker.set_weights()
 
-print('Gather first set of data.')
-for iter in range(number_of_samples):
-    for i in range(max_time):
-        print('Iteration ', iter, ', time step ', i,'    ',end='\r')
-        walker.step()
-        if walker.metric(walker.G.nodes[walker.x]['pattern'],walker.searched_pattern)==0 and walker.x==walker.searched_node:
-            fpts_fixed_pattern.append(walker.t)
-            walker.reset()
-            break
-    #If the inner loop does not find the target, we need to reset separately.
-    #Ensures that we don't get the times of several failed experiments summed up.
-    walker.reset()
+                fpts=[]
 
-print('Gather second set of data.')
-for iter in range(number_of_samples):
-    #print('round ',iter)
-    for i in range(max_time):
-        print('Iteration ', iter, ', time step ', i,'    ',end='\r')
-        walker.step()
-        if walker.metric(walker.G.nodes[walker.x]['pattern'],walker.searched_pattern)==0 and walker.x==walker.searched_node:
-            fpts_varying_pattern.append(walker.t)
-            walker=rw.patternWalker(G.copy(),root,N,gamma,search_for=target)
-            walker.set_weights()
-            break
-    #If the inner loop does not find the target, we need to reset separately.
-    #Ensures that we don't get the times of several failed experiments summed up.
-    walker.reset()
+                for iter in range(number_of_samples):
+                    for i in range(max_time):
+                        print('Iteration ', iter, ', time step ', i,'    ',end='\r')
+                        walker.step()
+                        if walker.metric(walker.G.nodes[walker.x]['pattern'],walker.searched_pattern)==0 and walker.x==walker.searched_node:
+                            fpts.append(walker.t)
+                            walker.reset()
+                            break
+                    #If the inner loop does not find the target, we need to reset separately.
+                    #Ensures that we don't get the times of several failed experiments summed up.
+                    walker.reset()
+                print('\n')
 
 
-failed_fixed_pattern=number_of_samples-len(fpts_fixed_pattern)
-failed_varying_pattern=number_of_samples-len(fpts_varying_pattern)
-print('Failed search with fixed patterns: ',failed_fixed_pattern)
-print('Failed search with varying patterns: ',failed_varying_pattern)
-
-fig,ax=plt.subplots()
-hist_fixed_pattern,_,_=ax.hist(fpts_fixed_pattern,bins=50,color='b',alpha=0.7,density=True)
-hist_varying_pattern,_,_=ax.hist(fpts_varying_pattern,bins=50,color='r',alpha=0.7,density=True)
-dist=np.linalg.norm( hist_fixed_pattern-hist_varying_pattern,ord=1)
-print('Distance of histograms in L1=',dist)
-plt.text(0.5,0.5,'Histogram $L^1$ distance={}'.format( dist ) ,transform=ax.transAxes)
-#plt.text(0.7,0.7,'mean={m},std={s}'.format(m=round(np.mean(fpts),2),s=round(np.std(fpts),2)),transform=ax.transAxes)
-plt.savefig('fixed_v_varying_patterns.pdf')
-plt.show()
+                failed_searches=number_of_samples-len(fpts)
+                f.write('Failed searches: '+str(failed_searches)+'\n')
+                print('\n')
+                fig,ax=plt.subplots()
+                hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
+                plt.text(0.7,0.7,'mean={m},std={s}'.format(m=round(np.mean(fpts),2),s=round(np.std(fpts),2)),transform=ax.transAxes)
+                plt.title('r={r}, h={h}, $\Gamma$={gamma}, N={N}, samples={number_of_samples}, max_time={max_time}, fails={fails}'.format(r=r,h=h,gamma=round(gamma,2),N=N,number_of_samples=number_of_samples, max_time=max_time,fails=failed_searches))
+                plt.savefig('./outputs/FPT'+name_string)
+                #plt.show()
+    f.write("#########################################################################")
