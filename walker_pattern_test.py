@@ -1,5 +1,5 @@
 import random_walker as rw
-from dag_exps import poisson_ditree,directify
+from dag_exps import poisson_ditree,directify,leaves
 import networkx as nx
 from networkx.generators import balanced_tree
 import numpy as np
@@ -14,13 +14,17 @@ for node in G.nodes():
         root=node
         break
 G=directify(G,root)[0]
-walker=rw.patternWalker(G,root,200,0.1)
+print(leaves(G))
+walker=rw.patternWalker(G,root,100,0.2)
+
+print(rw.count_pattern_duplicates(walker))
+
 walker.set_weights()
 #np.random.seed()
 
 fpts=[]
 
-for _ in range(2000):
+for _ in range(200):
     for i in range(1000):
         walker.step()
         if walker.metric(walker.G.nodes[walker.x]['pattern'],walker.searched_pattern)==0 and walker.x==walker.searched_node:

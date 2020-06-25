@@ -71,6 +71,15 @@ def directify(G,root):
             out.add_edge(edge[1],edge[0])
     return out,root
 
+def leaves(G):
+    """
+    Returns the nodes of G with out-degree zero in a list.
+    ----------------------------------------------------------------------------
+    G: nx.Digraph
+    ----------------------------------------------------------------------------
+    returns: List of leaves nodes, i.e. those with zero out-degree.
+    """
+    return [node  for (node,od) in G.out_degree() if od==0]
 
 def uniform_ditree(n,seed=None):
     G_temp=nx.generators.random_tree(n,seed)

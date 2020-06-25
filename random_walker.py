@@ -45,7 +45,7 @@ class walker:
 
     def reset(self):
         self.x=self.trace[0]
-        self.trace=[]
+        self.trace=[self.root]
         self.t=0
 
 def hamming_dist(a,b):
@@ -61,7 +61,7 @@ class patternWalker(walker):
         self.flip_rate=flip_rate
         self.root=init_pos
         self.metric=metric
-        self.G.nodes[self.root]['pattern']=np.random.randint(0,2,self.pattern_len)
+        self.G.nodes[self.root]['pattern']=list(np.random.randint(0,2,self.pattern_len))
         self.set_patterns()
         if search_for is None:
             self.searched_node=np.random.choice(self.G.nodes)
@@ -107,7 +107,18 @@ class patternWalker(walker):
 
 
 def mutate_pattern(pattern,gamma):
-    return np.array([ 1-x if np.random.random()<gamma else x for x in pattern ])
+    return [ 1-x if np.random.random()<gamma else x for x in pattern ]
+
+def count_pattern_duplicates(pw):
+    patterns = list(nx.get_node_attributes(pw.G,'pattern').values())
+    duplicates = []
+    uniques = []
+    for x in patterns:
+        if x not in uniques:
+            uniques.append(x)
+        else:
+            duplicates.append(x)
+    return len(duplicates)
 
 if __name__=="__main__":
 
