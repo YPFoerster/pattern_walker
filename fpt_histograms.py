@@ -36,6 +36,8 @@ for iter in range(number_of_samples):
             fpts_fixed_pattern.append(walker.t)
             walker.reset()
             break
+    #If the inner loop does not find the target, we need to reset separately.
+    #Ensures that we don't get the times of several failed experiments summed up.
     walker.reset()
 
 print('Gather second set of data.')
