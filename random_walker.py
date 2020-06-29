@@ -104,7 +104,17 @@ class patternWalker(walker):
 
         return children,parents,probs
 
-
+    def get_mfpt(self):
+        trans = nx.to_numpy_matrix(self.G,weight='prob').T
+        target_index=list(self.G.nodes()).index(self.searched_node)
+        root_index=list(self.G.nodes()).index(self.root)
+        evals,r_evecs=np.linalg.eig(trans)
+        r_evecs=np.array(r_evecs)
+        max_eval_index=np.argmax(evals)
+        l_evecs=np.linalg.inv(r_evecs)
+        eq_evec=l_evecs[ max_eval_index  ]
+        out = 1/eq_evec[root_index]*( 1+ np.sum([ evals[l]/(1-evals[l])*r_evecs[root_index,l]*( l_evecs[l,root_index]-l_evecs[l,target_index]) for l in range(len(evals)) if l != max_eval_index]) )
+        return out
 
 def mutate_pattern(pattern,gamma):
     return [ 1-x if np.random.random()<gamma else x for x in pattern ]
@@ -119,6 +129,8 @@ def count_pattern_duplicates(pw):
         else:
             duplicates.append(x)
     return len(duplicates)
+
+
 
 if __name__=="__main__":
 
