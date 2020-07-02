@@ -4,10 +4,10 @@ import networkx as nx
 from networkx.generators import balanced_tree
 import numpy as np
 
-r=3 #offspring number
+r=4 #offspring number
 h=5 #height
 gamma=0.2 #mutation rate
-N=100 #bits in a pattern; must be adapted to ensure uniqueness of patterns
+N=50 #bits in a pattern; must be adapted to ensure uniqueness of patterns
 number_of_samples=5000
 max_time=5000
 
@@ -23,6 +23,7 @@ G=directify(G,root)[0]
 target = leaves(G)[0]
 walker=rw.patternWalker(G.copy(),root,N,gamma,search_for=target)
 walker.set_weights()
-
+print(nx.to_numpy_matrix(walker.G,weight='prob'))
+print(len(walker.G),np.linalg.matrix_rank( nx.to_numpy_matrix(walker.G,weight='prob')))
 mfpt=walker.get_mfpt()
 print(mfpt)

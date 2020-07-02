@@ -43,6 +43,7 @@ class walker:
         self.trace.append(self.x)
         self.t+=1
 
+
     def reset(self):
         self.x=self.trace[0]
         self.trace=[self.root]
@@ -61,6 +62,7 @@ class patternWalker(walker):
         self.flip_rate=flip_rate
         self.root=init_pos
         self.metric=metric
+        self.hierarchy_backup=self.G.copy()
         self.G.nodes[self.root]['pattern']=list(np.random.randint(0,2,self.pattern_len))
         self.set_patterns()
         if search_for is None:
@@ -69,7 +71,6 @@ class patternWalker(walker):
         else:
             self.searched_node=search_for
             self.searched_pattern=self.G.nodes[self.searched_node]['pattern']
-
 
     def set_patterns(self):
         last_patterned_gen=[self.root]
@@ -103,6 +104,19 @@ class patternWalker(walker):
             probs[key]/=denominator
 
         return children,parents,probs
+
+    def mark_downward_steps(self):
+        return [ -1 if nx.shortest_path_length(self.G,self.trace[i+1],self.root)>nx.shortest_path_length(self.G,self.trace[i],self.root) else 1 for i in range(len(self.trace[:-1])) ]
+
+    def get_downward_flux(self,site):
+        parents=self.hierarchy_backup.predecessors(site)
+        children=self.hierarchy_backup.successors(site)
+        return np.sum([ self.G.edges[parent,site]['prob'] for parent in parents])*np.sum( [self.G.edges[site,child]['prob'] for child in children] )
+
+    def get_upward_flux(self,site):
+        parents=self.hierarchy_backup.predecessors(site)
+        children=self.hierarchy_backup.successors(site)
+        return np.sum([ self.G.edges[site,parent]['prob'] for parent in parents])*np.sum( [self.G.edges[child,site]['prob'] for child in children] )
 
     def get_mfpt(self):
         trans = nx.to_numpy_matrix(self.G,weight='prob').T

@@ -6,18 +6,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 
-r=3 #offspring number
-h=5 #height
-gamma=0.2 #mutation rate
+r=3 #offspring number, will be covered by loop down below anyway
+h=5 #height, will be covered by looop down below anyway
+gamma=0.2 #mutation rate, will be covered by loop down below anyway
 N=100 #bits in a pattern; must be adapted to ensure uniqueness of patterns
-number_of_samples=5000
-max_time=5000
+number_of_samples=500
+max_time=500
 
 with open('log.out',mode='a') as f:
     f.write("########################################################################\n")
-    for r in [5,7]:
-        for h in [3,5,7]:
-            for gamma in [0.2,0.5,0.8]:
+    for r in [3]:
+        for h in [5]:
+            for gamma in [0.02]:
                 name_string='r{r}h{h}gamma{gamma}N{N}'.format(r=r,h=h,gamma=str(round(gamma,2)).replace('.','-'),N=N,number_of_samples=number_of_samples, max_time=max_time)
                 now=datetime.datetime.now()
                 f.write(now.strftime("#%Y-%m-%d %H:%M:%S")+'\n')
