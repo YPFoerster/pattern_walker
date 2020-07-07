@@ -45,7 +45,7 @@ class walker:
 
 
     def reset(self):
-        self.x=self.trace[0]
+        self.x=self.root.copy()
         self.trace=[self.root]
         self.t=0
 
@@ -118,17 +118,54 @@ class patternWalker(walker):
         children=self.hierarchy_backup.successors(site)
         return np.sum([ self.G.edges[site,parent]['prob'] for parent in parents])*np.sum( [self.G.edges[child,site]['prob'] for child in children] )
 
+    def get_stat_distr(self):
+        trans = nx.to_numpy_matrix(self.G,weight='prob').T #trans_{i,j}=Prob(i|j)= Prob(j->i)
+        evls, r_evcs = np.linalg.eig(trans)
+        max_evl_ndx=np.argmax(np.real(evls))
+        r_evcs[:,max_evl_ndx]/=np.sum(r_evcs[:,max_evl_ndx])
+        if any( [x<0 for x in r_evcs[:,max_evl_ndx]] ):
+            r_evcs[:,max_evl_ndx]*=-1
+        return np.squeeze(np.array(r_evcs[:,max_evl_ndx]))
+
+    def get_norm_laplacian(self):
+        pi=self.get_stat_distr()
+        trans=nx.to_numpy_matrix(self.G, weight='prob')
+        return np.matmul(np.matmul(np.diagflat(np.sqrt(pi)), np.eye(len(pi))-trans), np.diagflat(1/np.sqrt(pi)))
+
+    def get_YZ_hitting_time(self):
+        """
+        Following Yanhua and Zhang (2010)
+        """
+        pi=self.get_stat_distr()
+        trans=nx.to_numpy_matrix(self.G, weight='prob')
+        l_plus=np.linalg.pinv(
+            np.matmul(np.matmul(np.diagflat(np.sqrt(pi)), np.eye(len(pi))-trans), np.diagflat(1/np.sqrt(pi)))
+        )
+        root_ndx=list(self.G.nodes()).index(self.root)
+        target_ndx=list(self.G.nodes()).index(self.searched_node)
+        #return l_plus[target_ndx,target_ndx]/pi[target_ndx]-l_plus[root_ndx,target_ndx]/np.sqrt(pi[root_ndx]*pi[target_ndx])
+        return np.array([l_plus[root_ndx,root_ndx]/pi[root_ndx]-l_plus[target_ndx,root_ndx]/np.sqrt(pi[root_ndx]*pi[target_ndx]) for target_ndx in range(len(self.G))])
+
     def get_mfpt(self):
-        trans = nx.to_numpy_matrix(self.G,weight='prob').T
-        target_index=list(self.G.nodes()).index(self.searched_node)
-        root_index=list(self.G.nodes()).index(self.root)
-        evals,r_evecs=np.linalg.eig(trans)
-        r_evecs=np.array(r_evecs)
-        max_eval_index=np.argmax(evals)
-        l_evecs=np.linalg.inv(r_evecs)
-        eq_evec=l_evecs[ max_eval_index  ]
-        out = 1/eq_evec[root_index]*( 1+ np.sum([ evals[l]/(1-evals[l])*r_evecs[root_index,l]*( l_evecs[l,root_index]-l_evecs[l,target_index]) for l in range(len(evals)) if l != max_eval_index]) )
-        return out
+        trans = nx.to_numpy_matrix(self.G,weight='prob').T #trans_{i,j}=Prob(i|j)= Prob(j->i)
+        evls, r_evcs = np.linalg.eig(trans)
+        max_evl_ndx=np.argmax(np.real(evls))
+        r_evcs[:,max_evl_ndx]/=np.sum(r_evcs[:,max_evl_ndx])
+        if any( [x<0 for x in r_evcs[:,max_evl_ndx]] ):
+            r_evcs[:,max_evl_ndx]*=-1
+        p_eq=r_evcs[:,max_evl_ndx]
+        l_evcs=np.linalg.inv(r_evcs)
+        root_ndx=list(self.G.nodes()).index(self.root)
+        target_ndx=list(self.G.nodes()).index(self.searched_node)
+        return np.squeeze(np.array([1/p_eq[root_ndx]*(
+        1+ np.sum(
+            [
+            evls[l]/(1-evls[l])*\
+            r_evcs[root_ndx,l]*(l_evcs[root_ndx,l]-l_evcs[target_ndx,l])
+             for l in range(len(evls)) if l != max_evl_ndx
+            ]
+            )
+        ) for target_ndx in range(len(self.G))]))
 
 def mutate_pattern(pattern,gamma):
     return [ 1-x if np.random.random()<gamma else x for x in pattern ]
