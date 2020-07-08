@@ -7,9 +7,13 @@ poisson_ditree-- Generate directed rooted tree with Poissonian offspring.
 directify-- Turn tree into directed rooted tree relative to specified root.
 leaves-- Return nodes with out-degree zero of given graph.
 uniform_ditree-- Draw uniform random tree and directify.
+downward_current-- Calculate downward two-step probabilites through given nodes.
+upward_current-- Calculate upward two-step probabilites through given nodes.
 
-# NOTE: The following four functions were introduced to explore a certain
+
+# NOTE: The following five functions were introduced to explore a certain
 concepts and are not employed at the moment.
+
 above-- Return number of ancestors.
 below-- Return number of descendants.
 h-- above-below
@@ -106,6 +110,52 @@ def uniform_ditree(n,seed=None):
     G,root=directify(G,root)
     return G,root
 
+def downward_current(G,prob_dict,nodelist):
+    """
+    Iterate through nodelist and return list of two-step probabilities from
+    parent node to any of the children for every node in the list. Parents and
+    children are determined based on G.
+
+    G-- networkx.Digraph. Does not neccessarily need to be arborescent.
+    prob_dict-- Edge data for nodes in G; interpreted as probabilites.
+    nodelist-- The nodes in G to consider.
+    return-- list of two-step probabilities.
+    """
+    out=[]
+    for site in nodelist:
+        parents=self.hierarchy_backup.predecessors(site)
+        children=self.hierarchy_backup.successors(site)
+        #Note that the formula allows for more than one parent.
+        out.append(
+            np.sum([self.edges[site,parent]['prob'] for parent in parents])*\
+            np.sum([self.edges[child,site]['prob'] for child in children])
+            )
+    return out
+
+def upward_current():
+    """
+    As down_current, but in the oppsite direction.
+    Iterate through nodelist and return list of two-step probabilities from
+    any child node to the parent for every node in the list. Parents and
+    children are determined based on G.
+
+    G-- networkx.Digraph. Does not neccessarily need to be arborescent.
+    prob_dict-- Edge data for nodes in G; interpreted as probabilites.
+    nodelist-- The nodes in G to consider.
+    return-- list of two-step probabilities.
+    """
+    out=[]
+    for site in nodelist:
+        parents=self.hierarchy_backup.predecessors(site)
+        children=self.hierarchy_backup.successors(site)
+        #Note that the formula allows for more than one parent.
+        out.append(
+            np.sum([self.edges[parent,site]['prob'] for parent in parents])*\
+            np.sum([self.edges[site,child]['prob'] for child in children])
+            )
+    return out
+
+
 def above(G,x):
     return len(nx.ancestors(G,x))
 
@@ -122,4 +172,4 @@ def r(G,x):
     return h(G,x)/w(G,x)
 
 if __name__=="__main__":
-"""Tests to come."""
+    """Tests to come."""
