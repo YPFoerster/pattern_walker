@@ -161,7 +161,33 @@ def uniform_ditree(n,seed=None):
     G,root=directify(G,root)
     return G,root
 
-def downward_current(G,prob_dict,nodelist):
+def list_degree_nodes(G,deg,max_num=1):
+    """
+    Return list of nodes (max_num or fewer) of G with degree equal to deg.
+
+    G-- The graph to be searched.
+    deg-- The degree to look for.
+    max_num-- When max_num nodes of degree deg are found, the search ends.
+
+    return-- List of found nodes.
+
+    Example:
+    >>> G=nx.generators.classic.balanced_tree(3,3)
+    >>> len(list_degree_nodes(G,3))
+    1
+    >>> len(list_degree_nodes(G,5))
+    0
+    """
+    out=[]
+    for node in G.nodes():
+        if nx.degree(G,node)==deg:
+            out.append(node)
+            if len(out)>=max_num:
+                break
+    return out
+
+
+def downward_current(G,prob_dict,data_key,nodelist=None):
     """
     Iterate through nodelist and return list of two-step probabilities from
     parent node to any of the children for every node in the list. Parents and
@@ -173,23 +199,39 @@ def downward_current(G,prob_dict,nodelist):
         probabilites treads. The reason is that introducing probabilites for
         stepping upwards changes the notion of "children" and "parents". Make
         sure that the input graph G reflects the desired hierarchy.
-    prob_dict-- Edge data for nodes in G; interpreted as probabilites.
-    nodelist-- The nodes in G to consider.
+    prob_dict-- Edge data for nodes in G in the form dict-of-dict-of-dicts,
+        since that is returned by nx.to_dict_of_dicts; data
+        interpreted as probabilites.
+    data_keyword--The key to access the right datum for each edge in prob_dict.
+    nodelist-- The nodes in G to consider (default None-> all nodes).
 
     return-- list of two-step probabilities.
+
+    Example:
+    >>> import random_walker as rw
+    >>> G=nx.generators.classic.balanced_tree(3,3)
+    >>> root=list_degree_nodes(G,3)[0]
+    >>> G,_=directify(G,root)
+    >>> G=rw.patternWalker(G,root,flip_rate=0.02,pattern_len=20)
+    >>> G.set_weights()
+    >>> down=downward_current(G.hierarchy_backup,nx.to_dict_of_dicts(G),'prob')
+    >>> len(down)==len(G)
+    True
     """
     out=[]
+    if nodelist is None:
+        nodelist=G.nodes()
     for site in nodelist:
         parents=G.predecessors(site)
         children=G.successors(site)
         #Note that the formula allows for more than one parent.
         out.append(
-            np.sum([self.edges[site,parent]['prob'] for parent in parents])*\
-            np.sum([self.edges[child,site]['prob'] for child in children])
+            np.sum([prob_dict[site][parent][data_key] for parent in parents])*\
+            np.sum([prob_dict[child][site][data_key] for child in children])
             )
     return out
 
-def upward_current():
+def upward_current(G,prob_dict,data_key,nodelist=None):
     """
     As down_current, but in the oppsite direction.
     Iterate through nodelist and return list of two-step probabilities from
@@ -202,19 +244,35 @@ def upward_current():
         probabilites treads. The reason is that introducing probabilites for
         stepping upwards changes the notion of "children" and "parents". Make
         sure that the input graph G reflects the desired hierarchy.
-    prob_dict-- Edge data for nodes in G; interpreted as probabilites.
-    nodelist-- The nodes in G to consider.
+    prob_dict-- Edge data for nodes in G in the form dict-of-dict-of-dicts,
+        since that is returned by nx.to_dict_of_dicts; data
+        interpreted as probabilites.
+    data_keyword--The key to access the right datum for each edge in prob_dict.
+    nodelist-- The nodes in G to consider (default None-> all nodes).
 
     return-- list of two-step probabilities.
+
+    Example:
+    >>> import random_walker as rw
+    >>> G=nx.generators.classic.balanced_tree(3,3)
+    >>> root=list_degree_nodes(G,3)[0]
+    >>> G,_=directify(G,root)
+    >>> G=rw.patternWalker(G,root,flip_rate=0.02,pattern_len=20)
+    >>> G.set_weights()
+    >>> up=upward_current(G.hierarchy_backup,nx.to_dict_of_dicts(G),'prob')
+    >>> len(up)==len(G)
+    True
     """
     out=[]
+    if nodelist is None:
+        nodelist=G.nodes()
     for site in nodelist:
         parents=G.predecessors(site)
         children=G.successors(site)
         #Note that the formula allows for more than one parent.
         out.append(
-            np.sum([self.edges[parent,site]['prob'] for parent in parents])*\
-            np.sum([self.edges[site,child]['prob'] for child in children])
+            np.sum([prob_dict[parent][site][data_key] for parent in parents])*\
+            np.sum([prob_dict[site][child][data_key] for child in children])
             )
     return out
 
@@ -283,9 +341,10 @@ def normalised_laplacian(G,weight='weight',stat_dist=None):
     trans=nx.to_numpy_matrix(G, weight=weight)
     return np.matmul(np.matmul(np.diagflat(np.sqrt(pi)),np.eye(len(pi))-trans),np.diagflat(1/np.sqrt(pi)))
 
-def mfpt(G,node_pairs,weight='weight',stat_dist=None,norm_laplacian=None,
-        method='fundamental_matrix'
-        ):
+def mfpt(
+    G,node_pairs,weight_str='weight',stat_dist=None,norm_laplacian=None,
+    method='fundamental_matrix'
+    ):
     """
     Return mean first passage times (MFPT) of a Markov chain on G
     for list of pairs of nodes.
@@ -309,26 +368,38 @@ def mfpt(G,node_pairs,weight='weight',stat_dist=None,norm_laplacian=None,
 
     return-- If node_pairs contains only one tuple (start,target):
         MFPT between start and target.
-        Else: Dict of dicts of MFPTs keyed by the nodes in node_pairs.
+        Otherwise: Dict of dicts of MFPTs keyed by the nodes in node_pairs.
+
+    Example:
+    >>> import random_walker as rw
+    >>> G=nx.generators.classic.balanced_tree(3,3)
+    >>> root=list_degree_nodes(G,3)[0]
+    >>> G,_=directify(G,root)
+    >>> G=rw.patternWalker(G,root,flip_rate=0.02,pattern_len=20)
+    >>> G.set_weights()
+    >>> a=mfpt(G,[(root,root)],weight_str='prob')
     """
-    out={{}}
+
+
+    out={}
     if method=='fundamental_matrix':
-        trans=nx.to_numpy_matrix(G, weight=weight)
+        trans=nx.to_numpy_matrix(G, weight=weight_str)
         pi=stat_dist
         nlap=norm_laplacian
         if pi is None:
-            pi=largest_eigenvector(G,weight=weight)
+            pi=largest_eigenvector(G,weight=weight_str)
         if norm_laplacian is None:
-            norm_laplacian=normalised_laplacian(G,weight,pi)
+            norm_laplacian=normalised_laplacian(G,weight_str,pi)
         inv_nlap=np.linalg.pinv(norm_laplacian) #pseudoinverse of nlap
         for pair in node_pairs:
             start_ndx=list(G.nodes()).index(pair[0])
             target_ndx=list(G.nodes()).index(pair[1])
-            out[pair[0]][pair[1]]=inv_lap[start_ndx,start_ndx]/pi[start_ndx]-\
-                inv_lap[target_ndx,start_ndx]/np.sqrt(pi[start_ndx]*pi[target_ndx])
+            out[pair]=inv_nlap[start_ndx,start_ndx]/pi[start_ndx]-\
+                inv_nlap[target_ndx,start_ndx]/np.sqrt(pi[start_ndx]*pi[target_ndx])
+
 
     if method=='eig':
-        trans = nx.to_numpy_matrix(G,weight=weight).T #trans_{i,j}=Prob(i|j)= Prob(j->i)
+        trans = nx.to_numpy_matrix(G,weight=weight_str).T #trans_{i,j}=Prob(i|j)= Prob(j->i)
         evls, r_evcs = np.linalg.eig(trans)
         max_evl_ndx=np.argmax(np.real(evls))
         r_evcs[:,max_evl_ndx]/=np.sum(r_evcs[:,max_evl_ndx])
@@ -341,15 +412,17 @@ def mfpt(G,node_pairs,weight='weight',stat_dist=None,norm_laplacian=None,
         for pair in node_pairs:
             start_ndx=list(G.nodes()).index(pair[0])
             target_ndx=list(G.nodes()).index(pair[1])
-            out[pair[0]][pair[1]]=1/p_eq[start_ndx]*(
-                1+ np.sum([
-                    evls[l]/(1-evls[l])*r_evcs[start_ndx,l]*\
-                    (l_evcs[start_ndx,l]-l_evcs[target_ndx,l])
-                    for l in range(len(evls)) if l != max_evl_ndx
-                    ])
-                )
+            out[pair[0]]={
+                pair[1]:1/p_eq[start_ndx]*(
+                    1+ np.sum([
+                        evls[l]/(1-evls[l])*r_evcs[start_ndx,l]*\
+                        (l_evcs[start_ndx,l]-l_evcs[target_ndx,l])
+                        for l in range(len(evls)) if l != max_evl_ndx
+                        ])
+                    )
+                }
     if len(node_pairs)==1:
-        return out[node_pairs[1][0]][node_pairs[0][1]]
+        return out[node_pairs[0]]
     else:
         return out
 

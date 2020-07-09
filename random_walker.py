@@ -86,7 +86,7 @@ class walker(nx.DiGraph):
         attributes to edges. Edges are added if they don't already exists, like
         for the upward edge between child and parent.
         """
-        for site in self.nodes:
+        for site in self.nodes():
             probs={}
             parents=[]
             children=[]
@@ -182,14 +182,13 @@ class patternWalker(walker):
             randonly from the leaf nodes.
         """
         #Remember to pass walker.bias=1 in super
+        self.hierarchy_backup=G.copy()
         super(patternWalker,self).__init__(G,init_pos,1.)
         self.pattern_len=pattern_len
         self.flip_rate=flip_rate
         self.root=init_pos
         if metric is None:
             self.metric=hamming_dist
-        self.hierarchy_backup=dict(self.edges())
-
         self.set_patterns()
         if search_for is None:
             self.target_node=np.random.choice(self.nodes)
