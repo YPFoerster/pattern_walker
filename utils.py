@@ -29,14 +29,23 @@ from networkx.utils import generate_unique_node
 import numpy as np
 
 def random_dag(nodes, edges):
-    """Generate random Directed Acyclic Graph with "nodes" and "edges"."""
+    """
+    Generate random Directed Acyclic Graph with "nodes" and "edges".
+
+    Example:
+    >>> G=random_dag(20,40)
+    >>> len(G)
+    20
+    >>> len(G.edges())
+    40
+    """
     G = nx.DiGraph()
     for i in range(nodes):
         G.add_node(i)
     while edges > 0:
         a = np.random.randint(0,nodes-1)
         b=a
-        while b==a:
+        while a==b or (a,b) in G.edges():
             b = np.random.randint(0,nodes-1)
         G.add_edge(a,b)
         if nx.is_directed_acyclic_graph(G):
@@ -48,8 +57,21 @@ def random_dag(nodes, edges):
 
 def poisson_ditree(lam,n_max=100):
     """
-    Returns a directed tree with Poissonian branching (distribution with
-    parameter 'lam'), terminating at 'n_max' nodes latest.
+    Return a directed tree with Poissonian branching. Terminate branching when
+    number of nodes >=n_max. NOTE, number of nodes is not prevented from
+    exceeding n_max.
+
+    lam-- Parameter of Poissonian branching distribution.
+    n_max-- Size threshold to stop branching.
+
+    return-- (G,root), with G the tree and root the first node.
+
+    Example:
+    >>> G,root=poisson_ditree(2)
+    >>> len(G)>0
+    True
+    >>> root in G.nodes()
+    True
     """
     G=nx.DiGraph()
     root=generate_unique_node() #all edges will be pointing away from root.
@@ -85,6 +107,24 @@ def directify(G,root):
 
     return-- tuple (out,root) with "out" the directified nx.Digraph with
     respect to "root", the designated root node.
+
+    Example:
+    >>> G=nx.generators.trees.random_tree(100)
+    >>> root=np.random.choice(G.nodes())
+    >>> H,_=directify(G,root)
+    >>> nx.is_arborescence(nx.DiGraph(G))
+    False
+    >>> nx.is_tree(G)
+    True
+    >>> nx.is_arborescence(H)
+    True
+    >>> nx.is_tree(H)
+    True
+    >>> H.to_undirected().edges()==G.edges()
+    True
+    >>> # Note that G!=H.to_undirected() even if all edges are identical.
+    >>> H.to_undirected()==G
+    False
     """
     out = nx.DiGraph()
     for edge in G.edges(data=False):
@@ -103,6 +143,14 @@ def leaves(G):
     G-- nx.Digraph
 
     return-- List of leaves nodes.
+
+    Example:
+    >>> G=random_dag(10,20)
+    >>> leaves_list=leaves(G)
+    >>> len(leaves_list)>0
+    True
+    >>> any([G.out_degree(x)>0 for x in leaves_list])
+    False
     """
     return [node  for (node,od) in G.out_degree() if od==0]
 
@@ -264,7 +312,7 @@ def mfpt(G,node_pairs,weight='weight',stat_dist=None,norm_laplacian=None,
         Else: Dict of dicts of MFPTs keyed by the nodes in node_pairs.
     """
     out={{}}
-    if method=='fundamental_matrix'
+    if method=='fundamental_matrix':
         trans=nx.to_numpy_matrix(G, weight=weight)
         pi=stat_dist
         nlap=norm_laplacian
@@ -322,4 +370,5 @@ def r(G,x):
     return h(G,x)/w(G,x)
 
 if __name__=="__main__":
-    """Tests to come."""
+    import doctest
+    doctest.testmod()
