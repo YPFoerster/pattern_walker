@@ -5,8 +5,10 @@ Digraphs.
 random_dag-- Generate a random DAG with specified number of nodes and edges.
 poisson_ditree-- Generate directed rooted tree with Poissonian offspring.
 directify-- Turn tree into directed rooted tree relative to specified root.
+sources-- Return nodes with in-degree zero of given graph.
 leaves-- Return nodes with out-degree zero of given graph.
 uniform_ditree-- Draw uniform random tree and directify.
+list_degree_nodes-- Return list of nodes with desired degree.
 downward_current-- Calculate downward two-step probabilites through given nodes.
 upward_current-- Calculate upward two-step probabilites through given nodes.
 path_direction_profile-- Return list of step directions for a path and reference.
@@ -135,6 +137,24 @@ def directify(G,root):
         else:
             out.add_edge(edge[1],edge[0])
     return out,root
+
+def sources(G):
+    """
+    Return the nodes of G with in-degree zero in a list.
+
+    G-- nx.Digraph
+
+    return-- List of source nodes.
+
+    Example:
+    >>> G=random_dag(10,20)
+    >>> sources_list=sources(G)
+    >>> len(sources_list)>0
+    True
+    >>> any([G.in_degree(x)>0 for x in sources_list])
+    False
+    """
+    return [node  for (node,id) in G.in_degree() if id==0]
 
 def leaves(G):
     """

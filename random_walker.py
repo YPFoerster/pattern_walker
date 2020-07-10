@@ -110,7 +110,7 @@ class walker(nx.DiGraph):
         self.t+=1
 
 
-    def reset(self):
+    def reset_walker(self):
         """Reset x,trace and t to initial values."""
         self.x=self.trace[0]
         self.trace=[self.x]
@@ -215,6 +215,16 @@ class patternWalker(walker):
                                                 pattern,self.flip_rate
                                                 )
             queue=[suc for node in queue for suc in self.successors(node)]
+
+    def reset_patterns(self):
+        """
+        Like set_patterns, but first resets edge data, because set_weights
+        introduces edges blurring the hierarchy on that set_patterns relies.
+        """
+        self.clear()
+        self.add_edges_from(self.hierarchy_backup.edges())
+        self.set_patterns()
+        self.set_weights()
 
     def num_pattern_duplicates(self):
         """Count all strings that appear more than once."""
