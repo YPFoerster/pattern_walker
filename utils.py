@@ -262,8 +262,8 @@ def downward_current(G,prob_dict,data_key,nodelist=None):
         children=G.successors(site)
         #Note that the formula allows for more than one parent.
         out.append(
-            np.sum([prob_dict[site][parent][data_key] for parent in parents])*\
-            np.sum([prob_dict[child][site][data_key] for child in children])
+            np.sum([prob_dict[parent][site][data_key] for parent in parents])*\
+            np.sum([prob_dict[site][child][data_key] for child in children])
             )
     return out
 
@@ -307,8 +307,8 @@ def upward_current(G,prob_dict,data_key,nodelist=None):
         children=G.successors(site)
         #Note that the formula allows for more than one parent.
         out.append(
-            np.sum([prob_dict[parent][site][data_key] for parent in parents])*\
-            np.sum([prob_dict[site][child][data_key] for child in children])
+            np.sum([prob_dict[site][parent][data_key] for parent in parents])*\
+            np.sum([prob_dict[child][site][data_key] for child in children])
             )
     return out
 
