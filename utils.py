@@ -45,10 +45,10 @@ def random_dag(nodes, edges):
     for i in range(nodes):
         G.add_node(i)
     while edges > 0:
-        a = np.random.randint(0,nodes-1)
+        a = np.random.randint(0,nodes)
         b=a
         while a==b or (a,b) in G.edges():
-            b = np.random.randint(0,nodes-1)
+            b = np.random.randint(0,nodes)
         G.add_edge(a,b)
         if nx.is_directed_acyclic_graph(G):
             edges -= 1
