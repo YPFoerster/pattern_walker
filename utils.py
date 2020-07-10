@@ -155,7 +155,23 @@ def leaves(G):
     return [node  for (node,od) in G.out_degree() if od==0]
 
 def uniform_ditree(n,seed=None):
-    """Draw uniform tree of size "n" and directify relative to random root."""
+    """
+    Draw uniform tree of size n and directify relative to random root.
+
+    n-- integer; number of nodes.
+    seed-- seed passed to np.random
+
+    return-- G,root
+
+    # NOTE: Bit of a convenience function; might be removed.
+
+    Example:
+    >>> G,_ = uniform_ditree(10,0)
+    >>> len(G)
+    10
+    >>> nx.is_arborescence(G)
+    True
+    """
     G=nx.generators.random_tree(n,seed)
     root = np.random.choice(list(G.nodes))
     G,root=directify(G,root)
@@ -289,11 +305,19 @@ def path_direction_profile(G,reference,path):
 
     return-- list of +1 and -1, indicating the direction of each step. Note
         that len(return)=len(path)-1.
+
+    Example:
+    >>> G=nx.generators.classic.balanced_tree(1,10)
+    >>> root=list_degree_nodes(G,1)[0]
+    >>> path=np.random.choice(G.nodes(),20,replace=True)
+    >>> profile=path_direction_profile(G,root,path)
+    >>> len(profile)
+    19
     """
     return [
             -1 if
-            nx.shortest_path_length(self,path[i+1],reference)>
-            nx.shortest_path_length(self,path[i],reference)
+            nx.shortest_path_length(G,path[i+1],reference)>
+            nx.shortest_path_length(G,path[i],reference)
             else 1
             for i in range(len(path[:-1]))
             ]
@@ -309,6 +333,15 @@ def largest_eigenvector(G,weight='weight'):
 
     return-- Left eigenvector of transition matrix corresponding to eigenvalue
         with greatest real part. Normalise entries to sum up to unity.
+
+    Example:
+    >>> G=nx.generators.classic.balanced_tree(1,10)
+    >>> root=list_degree_nodes(G,1)[0]
+    >>> # For this G, the largest eigenvector is the stationary
+    >>> # distribution of a random walker, all entries positive.
+    >>> pi=largest_eigenvector(G,weight=None)
+    >>> all( [x>0 for x in pi] )
+    True
     """
     #trans_{i,j}=Prob(j|i)= Prob(i->j)
     trans = nx.to_numpy_matrix(G,weight=weight)
@@ -334,6 +367,11 @@ def normalised_laplacian(G,weight='weight',stat_dist=None):
         using largest_eigenvector.
 
     return-- Normalised Laplacian, np.ndarray with shape (len(G),len(G)).
+
+    Example:
+    >>> G=nx.generators.classic.balanced_tree(1,10)
+    >>> root=list_degree_nodes(G,1)[0]
+    >>> L=normalised_laplacian(G,None)
     """
     pi=stat_dist
     if pi is None:
@@ -377,10 +415,13 @@ def mfpt(
     >>> G,_=directify(G,root)
     >>> G=rw.patternWalker(G,root,flip_rate=0.02,pattern_len=20)
     >>> G.set_weights()
-    >>> a=mfpt(G,[(root,root)],weight_str='prob')
+    >>> target=np.random.choice(G.nodes())
+    >>> while target==root:
+    ...    target=np.random.choice(G.nodes())
+    >>> t=mfpt(G,[(root,target)],weight_str='prob')
+    >>> t>0
+    True
     """
-
-
     out={}
     if method=='fundamental_matrix':
         trans=nx.to_numpy_matrix(G, weight=weight_str)
@@ -399,6 +440,7 @@ def mfpt(
 
 
     if method=='eig':
+        # NOTE: Not fixed yet.
         trans = nx.to_numpy_matrix(G,weight=weight_str).T #trans_{i,j}=Prob(i|j)= Prob(j->i)
         evls, r_evcs = np.linalg.eig(trans)
         max_evl_ndx=np.argmax(np.real(evls))
