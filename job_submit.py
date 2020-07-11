@@ -1,5 +1,5 @@
 """
-Copied from https://vsoch.github.io/lessons/sherlock-jobs/
+Adapted from https://vsoch.github.io/lessons/sherlock-jobs/
 """
 #!/usr/bin/env python
 
@@ -12,34 +12,31 @@ def mkdir_p(dir):
         os.mkdir(dir)
 
 
-job_directory = "%s/.job" %os.getcwd()
-scratch = os.environ['SCRATCH']
-data_dir = os.path.join(scratch, '/project/LizardLips')
+job_directory = "{}/.job".format(os.getcwd())
+scratch = '/scratch/user/k1801311'
+data_dir = os.path.join(scratch, '/project')
 
 # Make top level directories
 mkdir_p(job_directory)
 mkdir_p(data_dir)
 
-lizards=["LizardA","LizardB"]
+job_names=["job_nameA","job_nameB"]
 
-for lizard in lizards:
+for job_name in job_names:
 
-    job_file = os.path.join(job_directory,"%s.job" %lizard)
-    lizard_data = os.path.join(data_dir, lizard)
+    job_file = os.path.join(job_directory,"%s.job" %job_name)
+    job_name_data = os.path.join(data_dir, job_name)
 
-    # Create lizard directories
-    mkdir_p(lizard_data)
+    # Create job_name directories
+    mkdir_p(job_name_data)
 
     with open(job_file) as fh:
         fh.writelines("#!/bin/bash\n")
-        fh.writelines("#SBATCH --job-name=%s.job\n" % lizard)
-        fh.writelines("#SBATCH --output=.out/%s.out\n" % lizard)
-        fh.writelines("#SBATCH --error=.out/%s.err\n" % lizard)
-        fh.writelines("#SBATCH --time=2-00:00\n")
-        fh.writelines("#SBATCH --mem=12000\n")
-        fh.writelines("#SBATCH --qos=normal\n")
-        fh.writelines("#SBATCH --mail-type=ALL\n")
-        fh.writelines("#SBATCH --mail-user=$USER@stanford.edu\n")
-        fh.writelines("Rscript $HOME/project/LizardLips/run.R %s potato shiabato\n" %lizard_data)
+        fh.writelines("#SBATCH --job-name={}.job\n".format(job_name))
+        fh.writelines("#SBATCH --output=.out/{}.out\n".format(job_name))
+        fh.writelines("#SBATCH --error=.out/{}.err\n".format(job_name))
+        fh.writelines("#SBATCH --time=0-02:00\n")
+        fh.writelines("#SBATCH --mem=1200\n")
+        fh.writelines("python $HOME/project/subproject/run.py {} var1 var2\n".format(job_name_data))
 
-    os.system("sbatch %s" %job_file)
+    subprocess.run(os.system("sbatch {}".format(job_file)),shell=True)
