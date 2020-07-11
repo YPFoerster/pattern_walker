@@ -29,6 +29,7 @@ r-- h/w
 import networkx as nx
 from networkx.utils import generate_unique_node
 import numpy as np
+import timeit
 
 def random_dag(nodes, edges):
     """
@@ -504,6 +505,27 @@ def w(G,x):
 def r(G,x):
     return h(G,x)/w(G,x)
 
+
+def timer_decorator(func,args,kwargs):
+    def wrapper():
+        return func(*args,*kwargs)
+    return wrapper
+
+
 if __name__=="__main__":
     import doctest
     doctest.testmod()
+
+    if True:
+        from networkx.generators.classic import balanced_tree
+        import random_walker as rw
+        G=balanced_tree(3,3)
+        root=list_degree_nodes(G,3)[0]
+        G,_=directify(G,root)
+        G=rw.walker(G,root,1)
+        G.set_weights()
+        args=[G,[(root,x) for x in leaves(G)]]
+        kwargs={'weight_str': 'prob'}
+        time_func=timer_decorator(mfpt,args,kwargs)
+        t=timeit.timeit(stmt=time_func,number=1000)
+        print(t)
