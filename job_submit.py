@@ -11,13 +11,13 @@ def mkdir_p(dir):
     if not os.path.exists(dir):
         os.mkdir(dir)
 
-project_dir='/users/k1801311/patternWalker/test'
+project_dir='{}/test'.format(os.getcwd())
 
 mkdir_p(project_dir)
 os.chdir(project_dir)
 job_directory = "{}/.job".format(os.getcwd())
-scratch = '/scratch/user/k1801311'
-data_dir = os.path.join(scratch, '/patternWalker/test')
+scratch = '/scratch/users/k1801311'
+data_dir = os.path.join(scratch, 'patternWalker/test')
 
 # Make top level directories
 mkdir_p(job_directory)
@@ -36,17 +36,19 @@ for job in jobs:
     # Create job_name directories
     mkdir_p(job_name_data)
 
-    with open(job_file) as fh:
+    with open(job_file,'w') as fh:
         fh.writelines("#!/bin/bash\n")
+        fh.writelines("#SBATCH --partition=nms_research\n")
         fh.writelines("#SBATCH --job-name={}.job\n".format(job["job_name"]))
         fh.writelines("#SBATCH --output=.out/{}.out\n".format(job["job_name"]))
         fh.writelines("#SBATCH --error=.out/{}.err\n".format(job["job_name"]))
         fh.writelines("#SBATCH --time=0-00:02\n")
         fh.writelines("#SBATCH --mem=1200\n")
+        fh.writelines("module load devtools/anaconda\n")
         fh.writelines("python test_job.py \
             --branching-factor {r} --height {h} --gamma {gamma} --string_len {N}\
             --num-samples {n_samples} --num-cores {n_cores} --job-id {id} \
             --output-dir {out_dir}\
-             \n".format(out_dir=job_name_data,job_id='$SLURM_JOB_ID',**job))
+             \n".format(out_dir=job_name_data,id='$SLURM_JOB_ID',**job))
 
-    subprocess.run(os.system("sbatch {}".format(job_file)),shell=True)
+    subprocess.run("sbatch {}".format(job_file),shell=True,capture_output=True)
