@@ -115,5 +115,5 @@ hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
 #plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.png'))
 plt.savefig('{}.png'.format(job_name))
 with open('{}.pkl'.format(job_name), 'ab') as f:
-    pickle.dump(fpts)
-    pickle.dump(vars(args), 'ab')
+    pickle.dump(fpts,f)
+    pickle.dump(vars(args), f)
