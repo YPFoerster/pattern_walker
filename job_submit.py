@@ -14,13 +14,15 @@ def mkdir_p(dir):
 project_dir='{}/test'.format(os.getcwd())
 
 mkdir_p(project_dir)
-os.chdir(project_dir)
-job_directory = "{}/.job".format(os.getcwd())
+#os.chdir(project_dir)
+job_directory = os.path.join(project_dir,".job")
+stdout_dir= os.path.join(project_dir,".out")
 scratch = '/scratch/users/k1801311'
 data_dir = os.path.join(scratch, 'patternWalker/test')
 
 # Make top level directories
 mkdir_p(job_directory)
+mkdir_p(stdout_dir)
 mkdir_p(data_dir)
 
 
@@ -31,24 +33,27 @@ jobs=[job_params_dict]
 for job in jobs:
 
     job_file = os.path.join(job_directory,"{}.job".format(job["job_name"]))
+    stdout_file =os.path.join(stdout_dir,"{}.out".format(job["job_name"]))
+    err_file=os.path.join(stdout_dir,"{}.err".format(job["job_name"]))
     job_name_data = os.path.join(data_dir, job["job_name"])
 
     # Create job_name directories
     mkdir_p(job_name_data)
 
     with open(job_file,'w') as fh:
-        fh.writelines("#!/bin/bash\n")
+        fh.writelines("#!/bin/bash -l\n")
         fh.writelines("#SBATCH --partition=nms_research\n")
         fh.writelines("#SBATCH --job-name={}.job\n".format(job["job_name"]))
-        fh.writelines("#SBATCH --output=.out/{}.out\n".format(job["job_name"]))
-        fh.writelines("#SBATCH --error=.out/{}.err\n".format(job["job_name"]))
+        fh.writelines("#SBATCH --output={}\n".format(stdout_file))
+        fh.writelines("#SBATCH --error={}\n".format(err_file))
         fh.writelines("#SBATCH --time=0-00:02\n")
         fh.writelines("#SBATCH --mem=1200\n")
+        fh.writelines("echo This is a test\n")
         fh.writelines("module load devtools/anaconda\n")
         fh.writelines("python test_job.py \
-            --branching-factor {r} --height {h} --gamma {gamma} --string_len {N}\
+            --branching-factor {r} --height {h} --gamma {gamma} --string-len {N}\
             --num-samples {n_samples} --num-cores {n_cores} --job-id {id} \
             --output-dir {out_dir}\
              \n".format(out_dir=job_name_data,id='$SLURM_JOB_ID',**job))
 
-    subprocess.run("sbatch {}".format(job_file),shell=True,capture_output=True)
+    subprocess.run("sbatch {}".format(job_file),shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
