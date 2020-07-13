@@ -16,13 +16,11 @@ project_dir='{}/test'.format(os.getcwd())
 mkdir_p(project_dir)
 #os.chdir(project_dir)
 job_directory = os.path.join(project_dir,".job")
-stdout_dir= os.path.join(project_dir,".out")
 scratch = '/scratch/users/k1801311'
 data_dir = os.path.join(scratch, 'patternWalker/test')
 
 # Make top level directories
 mkdir_p(job_directory)
-mkdir_p(stdout_dir)
 mkdir_p(data_dir)
 
 
@@ -33,8 +31,8 @@ jobs=[job_params_dict]
 for job in jobs:
 
     job_file = os.path.join(job_directory,"{}.job".format(job["job_name"]))
-    stdout_file =os.path.join(stdout_dir,"{}.out".format(job["job_name"]))
-    err_file=os.path.join(stdout_dir,"{}.err".format(job["job_name"]))
+    stdout_file =os.path.join(job_directory,"{}.out".format(job["job_name"]))
+    err_file=os.path.join(job_directory,"{}.err".format(job["job_name"]))
     job_name_data = os.path.join(data_dir, job["job_name"])
 
     # Create job_name directories
@@ -53,7 +51,7 @@ for job in jobs:
         fh.writelines("python test_job.py \
             --branching-factor {r} --height {h} --gamma {gamma} --string-len {N}\
             --num-samples {n_samples} --num-cores {n_cores} --job-id {id} \
-            --output-dir {out_dir}\
+            --job-name {job_name} --output-dir {out_dir}\
              \n".format(out_dir=job_name_data,id='$SLURM_JOB_ID',**job))
 
     subprocess.run("sbatch {}".format(job_file),shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

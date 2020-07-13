@@ -9,6 +9,7 @@ import copy
 import argparse
 import functools
 import os
+import pickle
 
 parser = argparse.ArgumentParser(description="""
     This script mimics an instance of our mfpts sampling.
@@ -36,6 +37,10 @@ parser.add_argument("--job-id", default="unkown", dest="job_id",
     help="SLURM job ID (default: %(default)s)"
     )
 
+parser.add_argument("--job-name", default="unkown", dest="job_name",
+    help="Job name as per submission to sbatch (default: %(default)s)"
+    )
+
 parser.add_argument("--output-dir", default=".", dest="out_dir", help="Output files will appear here. (default: %(default)s)")
 
 args=parser.parse_args()
@@ -49,6 +54,7 @@ N=args.string_len
 number_of_samples=args.number_of_samples
 num_cores=args.num_cores
 job_id=args.job_id #as assigned by SLURM, for instance
+job_name=args.job_name #as submitted to SBATCH
 out_dir=args.out_dir #where to dump all that output.
 
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
@@ -107,5 +113,7 @@ hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
 #ax.set_title(vars(args))
 #plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.pdf'))
 #plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.png'))
-plt.savefig('test.png')
-#plt.show()
+plt.savefig('{}.png'.format(job_name))
+with open('{}.pkl'.format(job_name), 'ab') as f:
+    pickle.dump(fpts)
+    pickle.dump(vars(args), 'ab')
