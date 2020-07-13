@@ -96,6 +96,37 @@ def poisson_ditree(lam,n_max=100):
         current_gen=new_gen.copy()
     return G,root
 
+def balanced_directed_tree(r,h):
+    """
+    Generate a perfectly balanced tree and return as nx.Digraph such that egdes
+    point away from the root.
+
+    r-- Branching factor. Each node except for leaves has r children.
+    h-- Height of the tree. The root sits on level 0, leaves at distance h from
+        root.
+
+    return-- (G,root), where root is the unique node in G with degree r (r>1)
+        and G is the nx.DiGraph with edges directed towards increasing distance
+        from root.
+
+    Example:
+    >>> G,root=balanced_directed_tree(3,4)
+    >>> type(G)
+    <class 'networkx.classes.digraph.DiGraph'>
+    >>> G.out_degree(root)==3
+    True
+    >>> nx.is_arborescence(G)
+    True
+    """
+    G=nx.generators.balanced_tree(r,h)
+    root=None
+    #root is the inly node in G with degree r, all others have degree r+1.
+    for node in G.nodes():
+        if nx.degree(G,node)==r:
+            root=node
+            break
+    return directify(G,root)
+
 def directify(G,root):
     """
     Return the DiGraph that is obtained by directing all edges of G "away" from

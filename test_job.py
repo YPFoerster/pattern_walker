@@ -71,14 +71,9 @@ fpts=[]
 start_time=datetime.datetime.now()
 print("Start:",start_time)
 print(vars(args))
-G=balanced_tree(r,h)
-root=None
-#root is the inly node in G with degree r, all others have degree r+1.
-for node in G.nodes():
-    if nx.degree(G,node)==r:
-        root=node
-        break
-G=utils.directify(G,root)[0]
+
+G,root=utils.balanced_directed_tree(r,h)
+
 leaves = utils.leaves(G)
 walker=rw.patternWalker(G.copy(),root,N,gamma)
 walker.set_weights()
