@@ -12,6 +12,8 @@ def mkdir_p(dir):
         os.mkdir(dir)
 
 project_dir='/users/k1801311/patternWalker/test'
+
+mkdir_p(project_dir)
 os.chdir(project_dir)
 job_directory = "{}/.job".format(os.getcwd())
 scratch = '/scratch/user/k1801311'
