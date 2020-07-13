@@ -1,16 +1,14 @@
 import random_walker as rw
 import utils
 import networkx as nx
-from networkx.generators import balanced_tree
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
-import os
-import sys
 import multiprocessing as mp
 import copy
 import argparse
 import functools
+import os
 
 parser = argparse.ArgumentParser(description="""
     This script mimics an instance of our mfpts sampling.
@@ -45,22 +43,26 @@ args=parser.parse_args()
 r=args.branching_factor #offspring number
 h=args.height #height
 gamma=args.gamma #mutation rate
-N=args.string_len #bits in a pattern; must be adapted to ensure uniqueness of patterns
+#bits in a pattern; must be adapted to ensure uniqueness of patterns
+N=args.string_len
+#number of realisations of pattern distributions in this case
 number_of_samples=args.number_of_samples
 num_cores=args.num_cores
-job_id=args.job_id
-out_dir=args.out_dir
+job_id=args.job_id #as assigned by SLURM, for instance
+out_dir=args.out_dir #where to dump all that output.
 
-
+os.chdir(out_dir) #This way, we can simply write files without specified paths.
 
 
 def solve_mfpts(walker_instance,pairs):
+    """Copy walker, get new strings and calculate mfpts."""
     walker=copy.deepcopy(walker_instance)
     walker.reset_patterns()
     walker.set_weights()
     return utils.mfpt(walker,pairs,weight_str='prob')
 
 def unpack_arg_decorator(func):
+    """For passing several positional arguments via an unstarred iterator."""
     @functools.wraps(func)
     def wrapper(arglist,**kwargs):
         return func(*arglist,**kwargs)
@@ -73,11 +75,12 @@ print("Start:",start_time)
 print(vars(args))
 
 G,root=utils.balanced_directed_tree(r,h)
-
 leaves = utils.leaves(G)
 walker=rw.patternWalker(G.copy(),root,N,gamma)
 walker.set_weights()
+#The nodes between which we want to calculate those MFPTs.
 pairs=[(walker.root,x) for x in leaves]
+#Only need to do scheduling if we have more than one core.
 if num_cores>1:
     solve_mfpts=unpack_arg_decorator(solve_mfpts)
     with mp.Pool(num_cores) as p:
@@ -104,4 +107,5 @@ hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
 #ax.set_title(vars(args))
 #plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.pdf'))
 #plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.png'))
-plt.show()
+plt.savefig('test.png')
+#plt.show()
