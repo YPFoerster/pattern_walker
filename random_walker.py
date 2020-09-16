@@ -11,7 +11,7 @@ count_pattern_duplicates-- Return number of duplicate patterns of a
 
 import numpy as np
 import networkx as nx
-import utils 
+import utils
 
 class walker(nx.DiGraph):
     """
@@ -190,6 +190,8 @@ class patternWalker(walker):
         self.root=init_pos
         if metric is None:
             self.metric=hamming_dist
+        else:
+            self.metric=metric
         self.set_patterns()
         if search_for is None:
             self.target_node=np.random.choice(utils.leaves(self.hierarchy_backup))
