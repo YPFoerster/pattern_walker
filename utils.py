@@ -282,7 +282,7 @@ def downward_current(G,prob_dict,data_key,nodelist=None):
     >>> G,_=directify(G,root)
     >>> G=rw.patternWalker(G,root,flip_rate=0.02,pattern_len=20)
     >>> G.set_weights()
-    >>> down=downward_current(G.hierarchy_backup,nx.to_dict_of_dicts(G),'prob')
+    >>> down=downward_current(G.hierarchy_backup,nx.to_dict_of_dicts(G),'weight')
     >>> len(down)==len(G)
     True
     """
@@ -327,7 +327,7 @@ def upward_current(G,prob_dict,data_key,nodelist=None):
     >>> G,_=directify(G,root)
     >>> G=rw.patternWalker(G,root,flip_rate=0.02,pattern_len=20)
     >>> G.set_weights()
-    >>> up=upward_current(G.hierarchy_backup,nx.to_dict_of_dicts(G),'prob')
+    >>> up=upward_current(G.hierarchy_backup,nx.to_dict_of_dicts(G),'weight')
     >>> len(up)==len(G)
     True
     """
@@ -470,7 +470,7 @@ def mfpt(
     >>> target=np.random.choice(G.nodes())
     >>> while target==root:
     ...    target=np.random.choice(G.nodes())
-    >>> t=mfpt(G,[(root,target)],weight_str='prob')
+    >>> t=mfpt(G,[(root,target)],weight_str='weight')
     >>> t>0
     True
     """
@@ -556,7 +556,7 @@ if __name__=="__main__":
         G=rw.walker(G,root,1)
         G.set_weights()
         args=[G,[(root,x) for x in leaves(G)]]
-        kwargs={'weight_str': 'prob'}
+        kwargs={'weight_str': 'weight'}
         time_func=timer_decorator(mfpt,args,kwargs)
         t=timeit.timeit(stmt=time_func,number=1000)
         print(t)

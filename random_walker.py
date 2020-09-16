@@ -93,10 +93,10 @@ class walker(nx.DiGraph):
             children=[]
             children,parents,probs=self.get_probs(site=site)
             nx.set_edge_attributes(
-                self,{(site,child):{'prob':probs[child]} for child in children}
+                self,{(site,child):{'weight':probs[child]} for child in children}
                 )
             self.add_edges_from(
-                [(site,parent,{'prob': probs[parent]}) for parent in parents]
+                [(site,parent,{'weight': probs[parent]}) for parent in parents]
                 )
 
 
