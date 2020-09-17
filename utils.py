@@ -255,7 +255,7 @@ def list_degree_nodes(G,deg,max_num=1):
     return out
 
 
-def downward_current(G,prob_dict,data_key,nodelist=None):
+def downward_current(G,prob_dict,data_key='weight',nodelist=None):
     """
     Iterate through nodelist and return list of two-step probabilities from
     parent node to any of the children for every node in the list. Parents and
@@ -299,7 +299,7 @@ def downward_current(G,prob_dict,data_key,nodelist=None):
             )
     return out
 
-def upward_current(G,prob_dict,data_key,nodelist=None):
+def upward_current(G,prob_dict,data_key='weight',nodelist=None):
     """
     As down_current, but in the oppsite direction.
     Iterate through nodelist and return list of two-step probabilities from
