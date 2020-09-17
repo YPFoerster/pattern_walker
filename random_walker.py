@@ -103,7 +103,7 @@ class walker(nx.DiGraph):
     def step(self):
         """Retrieve transition probabilites at self.x to step to a neighbour.
         Append new node to self.trace and increase self.t by one."""
-        out_edges_list=self.out_edges(self.x,'prob')
+        out_edges_list=self.out_edges(self.x,'weight')
         self.x = np.random.choice(
             [x[1] for x in out_edges_list],p=[x[2] for x  in out_edges_list]
             )
