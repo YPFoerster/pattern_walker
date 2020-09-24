@@ -487,8 +487,8 @@ def mfpt(
         for pair in node_pairs:
             start_ndx=list(G.nodes()).index(pair[0])
             target_ndx=list(G.nodes()).index(pair[1])
-            out[pair]=inv_nlap[start_ndx,start_ndx]/pi[start_ndx]-\
-                inv_nlap[target_ndx,start_ndx]/np.sqrt(pi[start_ndx]*pi[target_ndx])
+            out[pair]=inv_nlap[target_ndx,target_ndx]/pi[target_ndx]-\
+                inv_nlap[start_ndx,target_ndx]/np.sqrt(pi[start_ndx]*pi[target_ndx])
 
 
     if method=='eig':
