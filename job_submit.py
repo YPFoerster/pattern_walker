@@ -11,20 +11,20 @@ def mkdir_p(dir):
     if not os.path.exists(dir):
         os.mkdir(dir)
 
-project_dir='{}/test'.format(os.getcwd())
+project_dir='{}/simple_histograms'.format(os.getcwd())
 
 mkdir_p(project_dir)
 #os.chdir(project_dir)
 job_directory = os.path.join(project_dir,".job")
 scratch = '/scratch/users/k1801311'
-data_dir = os.path.join(scratch, 'patternWalker/test')
+data_dir = os.path.join(scratch, 'patternWalker/simple_histograms')
 
 # Make top level directories
 mkdir_p(job_directory)
 mkdir_p(data_dir)
 
 
-job_params_dict={'job_name':'simple_histogram','r':3,'h':4,'gamma':0.02,'N':10,'n_samples':10,
+job_params_dict={'job_name':'simple_histogram','r':3,'h':4,'gamma':0.3,'N':15,'n_samples':1000,
     'n_cores':2}
 jobs=[job_params_dict]
 

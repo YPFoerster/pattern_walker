@@ -1,0 +1,6 @@
+Start: 2020-09-28 13:17:13.793456
+{'branching_factor': 3, 'height': 4, 'gamma': 0.3, 'string_len': 15, 'number_of_samples': 1000, 'num_cores': 2, 'job_id': '910285', 'job_name': 'simple_histogram', 'out_dir': '/scratch/users/k1801311/patternWalker/simple_histograms/simple_histogram'}
+Enter multiprocessing.
+Finished multiprocessing.
+2020-09-28 13:17:41.779212
+{'branching_factor': 3, 'height': 4, 'gamma': 0.3, 'string_len': 15, 'number_of_samples': 1000, 'num_cores': 2, 'job_id': '910285', 'job_name': 'simple_histogram', 'out_dir': '/scratch/users/k1801311/patternWalker/simple_histograms/simple_histogram'}
