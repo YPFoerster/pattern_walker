@@ -12,7 +12,8 @@ import os
 import pickle
 
 parser = argparse.ArgumentParser(description="""
-    This script mimics an instance of our mfpts sampling.
+    For a fixed target, on a fixed graph with fixed weigthts, we sample the
+    first passage time starting from the root.
     """)
 
 parser.add_argument("--branching-factor", default=3, type=int, dest='branching_factor',
@@ -28,7 +29,7 @@ parser.add_argument("--string-len", default=10, type=int, dest='string_len',
     help="Len of bit strings assigned to each node (default: %(default)s)"
     )
 parser.add_argument("--num-samples", default=10, type=int, dest='number_of_samples',
-    help="Number of pattern realisations (default: %(default)s)"
+    help="Number of repeated walks stopping at target. (default: %(default)s)"
     )
 parser.add_argument("--num-cores", default=1, type=int, dest='num_cores',
     help="Number of cores requested (default: %(default)s)"
@@ -60,22 +61,14 @@ out_dir=args.out_dir #where to dump all that output.
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
 
 
-def solve_mfpts(walker_instance,pairs):
+def search_target(walker_instance):
     """Copy walker, get new strings and calculate mfpts."""
     walker=copy.deepcopy(walker_instance)
-    walker.reset_patterns()
-    walker.set_weights()
-    return utils.mfpt(walker,pairs,weight_str='weight')
-
-def unpack_arg_decorator(func):
-    """For passing several positional arguments via an unstarred iterator."""
-    @functools.wraps(func)
-    def wrapper(arglist,**kwargs):
-        return func(*arglist,**kwargs)
-    return wrapper
+    while walker.x != walker.target_node:
+        walker.step()
+    return walker.t
 
 fpts=[]
-#name_string='r{r}h{h}gamma{gamma}N{N}'.format(r=r,h=h,gamma=str(round(gamma,gamma_roundoff)).replace('.','-'),N=N,number_of_samples=number_of_samples, max_time=max_time)
 start_time=datetime.datetime.now()
 print("Start:",start_time)
 print(vars(args))
@@ -84,20 +77,21 @@ G,root=utils.balanced_directed_tree(r,h)
 leaves = utils.leaves(G)
 walker=rw.patternWalker(G.copy(),root,N,gamma)
 walker.set_weights()
-#The nodes between which we want to calculate those MFPTs.
-pairs=[(walker.root,x) for x in leaves]
+
+facts={'mfpt':utils.mfpt(walker,[(walker.root,walker.target_node)]),
+    'duplicate patterns':walker.num_pattern_duplicates()}
+
+
 #Only need to do scheduling if we have more than one core.
 if num_cores>1:
-    solve_mfpts=unpack_arg_decorator(solve_mfpts)
     with mp.Pool(num_cores) as p:
         print('Enter multiprocessing.')
-        for times in p.map(solve_mfpts, zip([walker]*number_of_samples,[pairs]*number_of_samples)):
-            for t in times.values():
-                fpts.append(t)
+        for times in p.map(search_target, [walker]*number_of_samples):
+            fpts.append(times)
         print('Finished multiprocessing.')
 else:
     for _ in range(number_of_samples):
-        times=solve_mfpts(walker,pairs)
+        times=search_target(walker)
         for t in times.values():
             fpts.append(t)
 
@@ -117,3 +111,4 @@ plt.savefig('{}.png'.format(job_name))
 with open('{}.pkl'.format(job_name), 'ab') as f:
     pickle.dump(fpts,f)
     pickle.dump(vars(args), f)
+    pickle.dump(facts,f)

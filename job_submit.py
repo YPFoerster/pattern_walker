@@ -24,7 +24,7 @@ mkdir_p(job_directory)
 mkdir_p(data_dir)
 
 
-job_params_dict={'job_name':'A','r':3,'h':4,'gamma':0.02,'N':10,'n_samples':10,
+job_params_dict={'job_name':'simple_histogram','r':3,'h':4,'gamma':0.02,'N':10,'n_samples':10,
     'n_cores':2}
 jobs=[job_params_dict]
 
@@ -46,9 +46,8 @@ for job in jobs:
         fh.writelines("#SBATCH --error={}\n".format(err_file))
         fh.writelines("#SBATCH --time=0-00:02\n")
         fh.writelines("#SBATCH --mem=1200\n")
-        fh.writelines("echo This is a test\n")
         fh.writelines("module load devtools/anaconda\n")
-        fh.writelines("python test_job.py \
+        fh.writelines("python simple_histogram.py \
             --branching-factor {r} --height {h} --gamma {gamma} --string-len {N}\
             --num-samples {n_samples} --num-cores {n_cores} --job-id {id} \
             --job-name {job_name} --output-dir {out_dir}\
