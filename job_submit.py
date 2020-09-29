@@ -24,9 +24,21 @@ mkdir_p(job_directory)
 mkdir_p(data_dir)
 
 
-job_params_dict={'job_name':'simple_histogram','r':3,'h':4,'gamma':0.3,'N':15,'n_samples':1000,
-    'n_cores':2}
-jobs=[job_params_dict]
+#job_params_dicts=[{'job_name':'fpt_histogram_1','r':3,'h':4,'gamma':0.1,'N':15,'n_samples':100000,
+#    'n_cores':4}, {'job_name':'fpt_histogram_2','r':3,'h':4,'gamma':0.15,'N':15,'n_samples':100000,
+#    'n_cores':4},{'job_name':'fpt_histogram_3','r':3,'h':4,'gamma':0.2,'N':15,'n_samples':100000,
+#    'n_cores':4},{'job_name':'fpt_histogram_4','r':3,'h':4,'gamma':0.25,'N':15,'n_samples':100000,
+#    'n_cores':4},{'job_name':'fpt_histogram_5','r':3,'h':4,'gamma':0.3,'N':15,'n_samples':100000,
+#    'n_cores':4}]
+
+gamma_range=[0.6,0.8]
+job_params_dicts=[
+    {'job_name':'fpt_histogram_2_{job_num}'.format(job_num=job_num),'r':3,'h':4,'gamma':gamma,'N':15,'n_samples':100000,
+    'n_cores':4} for (job_num,gamma) in zip(range(len(gamma_range)),gamma_range)  
+]
+
+
+jobs=job_params_dicts
 
 for job in jobs:
 
@@ -44,7 +56,7 @@ for job in jobs:
         fh.writelines("#SBATCH --job-name={}.job\n".format(job["job_name"]))
         fh.writelines("#SBATCH --output={}\n".format(stdout_file))
         fh.writelines("#SBATCH --error={}\n".format(err_file))
-        fh.writelines("#SBATCH --time=0-00:02\n")
+        fh.writelines("#SBATCH --time=0-02:00\n")
         fh.writelines("#SBATCH --mem=1200\n")
         fh.writelines("module load devtools/anaconda\n")
         fh.writelines("python simple_histogram.py \

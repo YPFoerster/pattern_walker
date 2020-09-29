@@ -102,12 +102,7 @@ failed_searches=number_of_samples-len(fpts)
 
 fig,ax=plt.subplots()
 hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
-#plt.text(0.7,0.7,'mean={m},std={s}'.format(m=round(np.mean(fpts),2),s=round(np.std(fpts),2)),transform=ax.transAxes)
-#ax.set_title(vars(args))
-#plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.pdf'))
-#plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.png'))
 plt.savefig('{}.png'.format(job_name))
-print(vars(args))
 with open('{}.pkl'.format(job_name), 'wb') as f:
     pickle.dump(fpts,f)
     pickle.dump(facts,f)
