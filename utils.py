@@ -30,6 +30,7 @@ import networkx as nx
 from networkx.utils import generate_unique_node
 import numpy as np
 import timeit
+from functools import wraps
 
 def random_dag(nodes, edges):
     """
@@ -538,9 +539,25 @@ def r(G,x):
 
 
 def timer_decorator(func,args,kwargs):
+    @wraps(func)
     def wrapper():
         return func(*args,*kwargs)
     return wrapper
+
+
+def seed_decorator(func,seed):
+    """Set fixed seed in front of function and reset afterwards.
+    # TODO: Can this done more elegantly? probably..."""
+    def actual_seed_decorator(func):
+
+        @wraps(func)
+        def wrapper(*args,**kwargs):
+            np.random.seed(seed)
+            out=func(*args,**kwargs)
+            np.random.seed()
+            return out
+        return wrapper
+    return actual_seed_decorator(func)
 
 
 if __name__=="__main__":
