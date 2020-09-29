@@ -81,7 +81,6 @@ walker.set_weights()
 facts={'mfpt':utils.mfpt(walker,[(walker.root,walker.target_node)]),
     'duplicate patterns':walker.num_pattern_duplicates()}
 
-
 #Only need to do scheduling if we have more than one core.
 if num_cores>1:
     with mp.Pool(num_cores) as p:
@@ -103,12 +102,8 @@ failed_searches=number_of_samples-len(fpts)
 
 fig,ax=plt.subplots()
 hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
-#plt.text(0.7,0.7,'mean={m},std={s}'.format(m=round(np.mean(fpts),2),s=round(np.std(fpts),2)),transform=ax.transAxes)
-#ax.set_title(vars(args))
-#plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.pdf'))
-#plt.savefig(os.path.join(output_loc,'FPT'+name_string+'.png'))
 plt.savefig('{}.png'.format(job_name))
-with open('{}.pkl'.format(job_name), 'ab') as f:
+with open('{}.pkl'.format(job_name), 'wb') as f:
     pickle.dump(fpts,f)
-    pickle.dump(vars(args), f)
     pickle.dump(facts,f)
+    pickle.dump(vars(args), f)
