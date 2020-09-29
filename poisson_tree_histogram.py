@@ -68,17 +68,21 @@ def search_target(walker_instance):
         walker.step()
     return walker.t
 
+def make_tree(lam,N,gamma):
+    G,root=utils.poisson_ditree(lam)
+    leaves = utils.leaves(G)
+    walker=rw.patternWalker(G.copy(),root,N,gamma)
+    walker.set_weights()
+    return G,root,walker
+
+
 fpts=[]
 start_time=datetime.datetime.now()
 print("Start:",start_time)
 print(vars(args))
 
-utils.poisson_ditree=utils.seed_decorator(utils.poisson_ditree,seed)
-
-G,root=utils.poisson_ditree(lam)
-leaves = utils.leaves(G)
-walker=rw.patternWalker(G.copy(),root,N,gamma)
-walker.set_weights()
+make_tree=utils.seed_decorator(make_tree,0)
+G,root,walker=make_tree(lam,N,gamma)
 
 facts={'mfpt':utils.mfpt(walker,[(walker.root,walker.target_node)]),
     'duplicate patterns':walker.num_pattern_duplicates()}
@@ -92,9 +96,7 @@ if num_cores>1:
         print('Finished multiprocessing.')
 else:
     for _ in range(number_of_samples):
-        times=search_target(walker)
-        for t in times.values():
-            fpts.append(t)
+        fpts.append(search_target(walker))
 
 fpts = [np.real(x) for x in fpts if x is not None]
 end_time=datetime.datetime.now()
