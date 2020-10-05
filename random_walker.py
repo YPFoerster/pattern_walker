@@ -293,12 +293,8 @@ class sectionedPatternWalker(patternWalker):
 
     def __init__(self,G,init_pos,pattern_len,flip_rate,sections,metric=None,search_for=None):
 
-        if isinstance(sections, list):
-            # TODO: More checks recommended to ensure that number of sections is compatible with the hierarchy,that endpoints are included and that we don't overshoot.
-            if isinstance(sections[0],int):
-                self.section_boundaries=sections
-
-            self.num_sections=len(sections)-1
+        self.sections=self.sections_prep(G,init_pos,pattern_len,sections)
+        self.num_sections=len(self.sections)
         super(sectionedPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,search_for)
 
 
@@ -324,19 +320,38 @@ class sectionedPatternWalker(patternWalker):
 
         #num_sections=len(list(self.successors(self.root)))
         #section_boundaries=[ i*int(self.pattern_len/num_sections) for i in range(num_sections+1)]
-        print(self.section_boundaries)
+        print(self.sections)
         principle_branches=list(self.successors(self.root))
         for i in range(self.num_sections):
-            self.nodes[principle_branches[i]]['pattern']=[ 0 if ind < self.section_boundaries[i] or ind>=self.section_boundaries[i+1] else self.nodes[principle_branches[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
+            self.nodes[principle_branches[i]]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[principle_branches[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
             #self.nodes[principle_branches[i]]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
             #self.nodes[principle_branches[i]]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
 
             for node in nx.descendants(self,principle_branches[i]):
-                self.nodes[node]['pattern']=[ 0 if ind < self.section_boundaries[i] or ind>=self.section_boundaries[i+1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
+                self.nodes[node]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
                 #self.nodes[node]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
                 #self.nodes[node]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
         for node in self:
             print(node,len(self.nodes[node]['pattern']),self.nodes[node]['pattern'])
+
+    def sections_prep(self,G,init_pos,pattern_len,sections):
+        out=[]
+        if isinstance(sections, list):
+            # TODO: More checks recommended to ensure that number of sections is compatible with the hierarchy,that endpoints are included and that we don't overshoot.
+            if isinstance(sections[0],int):
+                for ind in range(len(sections)-1):
+                    out.append( (sections[ind],sections[ind+1]) )
+            elif isinstance(sections[0], tuple):
+                out=sections
+
+            out[-1]=(out[-1][0],pattern_len)
+            sections_compatible=len(list(G.successors(init_pos)))-len(out)
+            if sections_compatible>0:
+                out=out+sections_compatible*[out[-1]]
+            elif sections_compatible<0:
+                out=out[:sections_compatible]
+                out[-1]=(out[-1][0],pattern_len)
+        return out
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b (truncates at len(a))."""
