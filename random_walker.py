@@ -291,9 +291,16 @@ class sectionedPatternWalker(patternWalker):
     True
     """
 
-    #def __init__(self,G,init_pos,pattern_len,flip_rate,metric=None,search_for=None):
-    #    self.hierarchy_backup=G.copy()
-    #    super(sectionedPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,search_for)
+    def __init__(self,G,init_pos,pattern_len,flip_rate,sections,metric=None,search_for=None):
+
+        if isinstance(sections, list):
+            # TODO: More checks recommended to ensure that number of sections is compatible with the hierarchy,that endpoints are included and that we don't overshoot.
+            if isinstance(sections[0],int):
+                self.section_boundaries=sections
+
+            self.num_sections=len(sections)-1
+        super(sectionedPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,search_for)
+
 
     def set_patterns(self):
         """
@@ -315,17 +322,17 @@ class sectionedPatternWalker(patternWalker):
                                                 )
             queue=[suc for node in queue for suc in self.successors(node)]
 
-        num_sections=len(list(self.successors(self.root)))
-        section_boundaries=[ i*int(self.pattern_len/num_sections) for i in range(num_sections+1)]
-        print(section_boundaries)
+        #num_sections=len(list(self.successors(self.root)))
+        #section_boundaries=[ i*int(self.pattern_len/num_sections) for i in range(num_sections+1)]
+        print(self.section_boundaries)
         principle_branches=list(self.successors(self.root))
-        for i in range(num_sections):
-            self.nodes[principle_branches[i]]['pattern']=[ 0 if ind < section_boundaries[i] or ind>=section_boundaries[i+1] else self.nodes[principle_branches[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
+        for i in range(self.num_sections):
+            self.nodes[principle_branches[i]]['pattern']=[ 0 if ind < self.section_boundaries[i] or ind>=self.section_boundaries[i+1] else self.nodes[principle_branches[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
             #self.nodes[principle_branches[i]]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
             #self.nodes[principle_branches[i]]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
 
             for node in nx.descendants(self,principle_branches[i]):
-                self.nodes[node]['pattern']=[ 0 if ind < section_boundaries[i] or ind>=section_boundaries[i+1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
+                self.nodes[node]['pattern']=[ 0 if ind < self.section_boundaries[i] or ind>=self.section_boundaries[i+1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
                 #self.nodes[node]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
                 #self.nodes[node]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
         for node in self:
