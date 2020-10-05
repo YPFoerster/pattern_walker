@@ -11,13 +11,13 @@ def mkdir_p(dir):
     if not os.path.exists(dir):
         os.mkdir(dir)
 
-project_dir='{}/poisson_tree_histograms'.format(os.getcwd())
+project_dir='{}/overlap_tree_histograms'.format(os.getcwd())
 
 mkdir_p(project_dir)
 #os.chdir(project_dir)
 job_directory = os.path.join(project_dir,".job")
 scratch = '/scratch/users/k1801311'
-data_dir = os.path.join(scratch, 'patternWalker/poisson_tree_histograms')
+data_dir = os.path.join(scratch, 'patternWalker/overlap_tree_histograms')
 
 # Make top level directories
 mkdir_p(job_directory)
@@ -31,10 +31,10 @@ mkdir_p(data_dir)
 #    'n_cores':4},{'job_name':'fpt_histogram_5','r':3,'h':4,'gamma':0.3,'N':15,'n_samples':100000,
 #    'n_cores':4}]
 
-gamma_range=[0.6,0.8]
+overlap_range=[1,2,3,4,5]
 job_params_dicts=[
-    {'job_name':'fpt_poisson_tree_{job_num}'.format(job_num=job_num),'lam':1.2,'seed':0,'gamma':gamma,'N':15,'n_samples':100000,
-    'n_cores':4} for (job_num,gamma) in zip(range(len(gamma_range)),gamma_range)  
+    {'job_name':'fpt_overlap_tree_{job_num}'.format(job_num=job_num),'r':3,'h':4,'gamma':0.3,'N':15,'overlap':overlap ,'n_samples':100000,
+    'n_cores':4} for (job_num,overlap) in zip(range(len(overlap_range)),overlap_range)  
 ]
 
 
@@ -56,11 +56,11 @@ for job in jobs:
         fh.writelines("#SBATCH --job-name={}.job\n".format(job["job_name"]))
         fh.writelines("#SBATCH --output={}\n".format(stdout_file))
         fh.writelines("#SBATCH --error={}\n".format(err_file))
-        fh.writelines("#SBATCH --time=0-02:00\n")
+        fh.writelines("#SBATCH --time=0-03:00\n")
         fh.writelines("#SBATCH --mem=1200\n")
         fh.writelines("module load devtools/anaconda\n")
-        fh.writelines("python poisson_tree_histogram.py \
-            --lam {lam} --seed {seed} --gamma {gamma} --string-len {N}\
+        fh.writelines("python overlap_tree_histogram.py \
+            --branching-factor {r} --height {h} --gamma {gamma} --string-len {N} --overlap {overlap}\
             --num-samples {n_samples} --num-cores {n_cores} --job-id {id} \
             --job-name {job_name} --output-dir {out_dir}\
              \n".format(out_dir=job_name_data,id='$SLURM_JOB_ID',**job))
