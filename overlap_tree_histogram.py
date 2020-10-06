@@ -78,9 +78,9 @@ def search_target(walker_instance):
 def make_tree(r,h,N,gamma,overlap):
     G,root=utils.balanced_directed_tree(r,h)
     leaves = utils.leaves(G)
-    walker=rw.patternWalker(G.copy(),root,N,gamma)
     sections=[i*int(N/r) for i in range(r)]
-    sections=[(sections[i],min(sections[i+1]+overlap,N)) for i in range(len(sections[:-1]))]
+    sections=[(sections[i],min(sections[i+1]+overlap,N)) for i in range(len(sections[:-1]))] 
+    walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,sections)
     walker.set_weights()
     return G,root,walker
 
