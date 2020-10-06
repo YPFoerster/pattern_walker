@@ -38,11 +38,11 @@ parser.add_argument("--num-samples", default=10, type=int, dest='number_of_sampl
 parser.add_argument("--num-cores", default=1, type=int, dest='num_cores',
     help="Number of cores requested (default: %(default)s)"
     )
-parser.add_argument("--job-id", default="unkown", dest="job_id",
+parser.add_argument("--job-id", default="own", dest="job_id",
     help="SLURM job ID (default: %(default)s)"
     )
 
-parser.add_argument("--job-name", default="unkown", dest="job_name",
+parser.add_argument("--job-name", default="unknown", dest="job_name",
     help="Job name as per submission to sbatch (default: %(default)s)"
     )
 
@@ -74,12 +74,13 @@ def search_target(walker_instance):
     return walker.t
 
 
-def make_tree(r,h,N,gamma,overlap):
+def make_tree(lam,N,gamma,overlap):
     G,root=utils.poisson_ditree(lam)
     leaves = utils.leaves(G)
     r=len(list(G.successors(root)))
-    sections=[i*int(N/r) for i in range(r)]
-    sections=[(sections[i],min(sections[i+1]+overlap,N)) for i in range(len(sections[:-1]))] 
+    print(r)
+    sections=[i*int(N/r) for i in range(r+1)]
+    sections=[(sections[i],min(sections[i+1]+overlap,N)) for i in range(len(sections[:-1]))]
     walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,sections)
     walker.set_weights()
     return G,root,walker
@@ -90,7 +91,7 @@ print("Start:",start_time)
 print(vars(args))
 
 make_tree=utils.seed_decorator(make_tree,0)
-G,root,walker=make_tree(r,h,N,gamma,overlap)
+G,root,walker=make_tree(lam,N,gamma,overlap)
 
 
 facts={'mfpt':utils.mfpt(walker,[(walker.root,walker.target_node)]),
@@ -105,9 +106,8 @@ if num_cores>1:
         print('Finished multiprocessing.')
 else:
     for _ in range(number_of_samples):
-        times=search_target(walker)
-        for t in times.values():
-            fpts.append(t)
+        fpts.append(search_target(walker))
+
 
 fpts = [np.real(x) for x in fpts if x is not None]
 end_time=datetime.datetime.now()
