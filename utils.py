@@ -27,10 +27,25 @@ r-- h/w
 """
 
 import networkx as nx
-from networkx.utils import generate_unique_node
+
 import numpy as np
 import timeit
 from functools import wraps
+#Monkey patched uuid.uuid4 to create reproducible unique nodes comparable to networkx.utils.generate_unique_node
+#from networkx.utils import generate_unique_node
+import uuid
+import random
+rd = random.Random()
+# -------------------------------------------
+# Remove this block to generate different
+# UUIDs everytime you run this code.
+# This block should be right below the uuid
+# import.
+
+rd.seed(0)
+uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
+# --------------------------------------------
+
 
 def random_dag(nodes, edges):
     """
@@ -558,6 +573,15 @@ def seed_decorator(func,seed):
             return out
         return wrapper
     return actual_seed_decorator(func)
+
+
+def generate_unique_node():
+    """
+    The networkx.utils function uses uuid.uuid1(). With uuid4() it is easier to
+    make the results reproducible.
+    """
+    return str(uuid.uuid4())
+
 
 
 if __name__=="__main__":
