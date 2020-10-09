@@ -34,9 +34,9 @@ mkdir_p(data_dir)
 #    'n_cores':4},{'job_name':'fpt_histogram_5','r':3,'h':4,'gamma':0.3,'N':15,'n_samples':100000,
 #    'n_cores':4}]
 
-overlap_range=[2,4,6,8,10]
+overlap_range=[0,5,10,15,20,25,30]
 job_params_dicts=[
-    {'job_name':'fpt_overlap_poisson_2_{job_num}'.format(job_num=job_num),'r':2,'seed':0,'gamma':1/6.,'N':30,'overlap':overlap ,'n_samples':100000,
+    {'job_name':'fpt_overlap_poisson_3_{job_num}'.format(job_num=job_num),'r':2,'seed':0,'gamma':1/6.,'N':30,'overlap':overlap ,'n_samples':100000,
     'n_cores':4} for (job_num,overlap) in zip(range(len(overlap_range)),overlap_range)  
 ]
 
@@ -59,7 +59,7 @@ for job in jobs:
         fh.writelines("#SBATCH --job-name={}.job\n".format(job["job_name"]))
         fh.writelines("#SBATCH --output={}\n".format(stdout_file))
         fh.writelines("#SBATCH --error={}\n".format(err_file))
-        fh.writelines("#SBATCH --time=0-03:00\n")
+        fh.writelines("#SBATCH --time=0-01:00\n")
         fh.writelines("#SBATCH --mem=1200\n")
         fh.writelines("module load devtools/anaconda\n")
         fh.writelines("python overlap_poisson_histogram.py \
