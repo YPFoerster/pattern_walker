@@ -318,9 +318,6 @@ class sectionedPatternWalker(patternWalker):
                                                 )
             queue=[suc for node in queue for suc in self.successors(node)]
 
-        #num_sections=len(list(self.successors(self.root)))
-        #section_boundaries=[ i*int(self.pattern_len/num_sections) for i in range(num_sections+1)]
-        print(self.sections)
         principle_branches=list(self.successors(self.root))
         for i in range(self.num_sections):
             self.nodes[principle_branches[i]]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[principle_branches[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
@@ -331,8 +328,6 @@ class sectionedPatternWalker(patternWalker):
                 self.nodes[node]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
                 #self.nodes[node]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
                 #self.nodes[node]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
-        for node in self:
-            print(node,len(self.nodes[node]['pattern']),self.nodes[node]['pattern'])
 
     def sections_prep(self,G,init_pos,pattern_len,sections):
         out=[]
