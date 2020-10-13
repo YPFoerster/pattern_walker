@@ -305,11 +305,13 @@ class sectionedPatternWalker(patternWalker):
         generation/level. A pattern/string is generated based on its parent
         string by the function mutate_pattern.
         """
+
+        queue=list(self.successors(self.root))
         self.nodes[self.root]['pattern']=list(np.random.randint(
                                                         0,2,self.pattern_len
                                                         ))
         last_patterned_gen=[self.root]
-        queue=list(self.successors(self.root))
+
         while len(queue)>0:
             for node in queue:
                 pattern=self.nodes[list(self.predecessors(node))[0]]['pattern']
@@ -356,6 +358,17 @@ def hamming_dist(a,b):
 def mutate_pattern(pattern,gamma):
     """Expect a binary string and flip every entry with probability gamma."""
     return [ 1-x if np.random.random()<gamma else x for x in pattern ]
+
+def sections_by_overlap(pattern_len,num_sections,frac_overlap):
+    shift=int(frac_overlap*pattern_len/2)
+    section_len=int(pattern_len/num_sections)
+    print(shift,section_len)
+    sections=[ ( i*section_len-shift,(i+1)*section_len+shift ) for i in range(num_sections)]
+    sections[0]=(0,section_len+shift)
+    sections[-1]=((num_sections-1)*section_len-shift,pattern_len)
+    return sections
+
+
 
 if __name__=="__main__":
     import doctest
