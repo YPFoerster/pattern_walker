@@ -33,7 +33,7 @@ make_tree=utils.seed_decorator(make_tree,0)
 pattern_len=30 #String/pattern length
 flip_rate=5/pattern_len #Bit flipping rate for propagating patterns
 
-offspring_factor=2
+offspring_factor=2.
 overlap=10
 H,root,G=make_tree(offspring_factor,pattern_len,flip_rate,overlap)
 
@@ -48,17 +48,22 @@ nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='g',ax=ax)
 
 
 def update(i):
-
+    ax.clear()
     label = 'timestep {0}'.format(i)
     print(label)
+
+    nx.draw(G, pos, edgelist=edges, edge_color=weights, edge_cmap=plt.cm.Blues,ax=ax)
+    nx.draw_networkx_nodes(G,pos,nodelist=[root],node_color='r',ax=ax)
+    #Mark target node in green.
+    nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='g',ax=ax)
     # Update the line and the axes (with a new xlabel). Return a tuple of
     # "artists" that have to be redrawn for this frame.
-    t=nx.draw_networkx_nodes(G,pos,nodelist=[G.x],node_color='y', ax=ax)
+    nx.draw_networkx_nodes(G,pos,nodelist=[G.x],node_color='y', ax=ax)
     G.step()
     return ax
 
 if __name__ == '__main__':
-    anim = FuncAnimation(fig, update, frames=np.arange(0, 1000), interval=2)
+    anim = FuncAnimation(fig, update, frames=np.arange(0, 1000), interval=1)
     plt.show()
     """
     # FuncAnimation will call the 'update' function for each frame; here
