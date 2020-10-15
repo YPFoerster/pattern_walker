@@ -13,7 +13,7 @@ def mkdir_p(dir):
         os.mkdir(dir)
 
 
-project_name='fractional_overlap_histograms'
+project_name='fractional_overlaps'
 project_dir='{}/{}'.format(os.getcwd(),project_name)
 
 mkdir_p(project_dir)
@@ -36,8 +36,8 @@ mkdir_p(data_dir)
 
 overlap_range=[0.2,0.4,0.6,0.8]
 job_params_dicts=[
-    {'job_name':'fpt_fractional_overlap_{job_num}'.format(job_num=job_num),'r':2,'seed':0,'gamma':1/6.,'N':15,'overlap':overlap ,'n_samples':100000,
-    'n_cores':4} for (job_num,overlap) in zip(range(len(overlap_range)),overlap_range)  
+    {'job_name':'{project_name}_{job_num}'.format(project_name=project_name,job_num=job_num),'r':2,'seed':0,'gamma':1/6.,'N':15,'overlap':overlap ,'n_samples':10,
+    'n_cores':4} for (job_num,overlap) in zip(range(len(overlap_range)),overlap_range)
 ]
 
 
@@ -59,7 +59,7 @@ for job in jobs:
         fh.writelines("#SBATCH --job-name={}.job\n".format(job["job_name"]))
         fh.writelines("#SBATCH --output={}\n".format(stdout_file))
         fh.writelines("#SBATCH --error={}\n".format(err_file))
-        fh.writelines("#SBATCH --time=0-02:00\n")
+        fh.writelines("#SBATCH --time=0-00:05\n")
         fh.writelines("#SBATCH --mem=1200\n")
         fh.writelines("module load devtools/anaconda\n")
         fh.writelines("python fractional_overlap_test.py \

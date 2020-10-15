@@ -62,6 +62,7 @@ num_cores=args.num_cores
 job_id=args.job_id #as assigned by SLURM, for instance
 job_name=args.job_name #as submitted to SBATCH
 out_dir=args.out_dir #where to dump all that output.
+args['job_dir']=os.getcwd() #store the location of the script for rerefence
 
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
 
@@ -95,8 +96,8 @@ make_tree=utils.seed_decorator(make_tree,0)
 G,root,walker=make_tree(lam,N,gamma,overlap)
 
 
-facts={'mfpt':utils.mfpt(walker,[(walker.root,walker.target_node)]),
-    'duplicate patterns':walker.num_pattern_duplicates()}
+args['mfpt']=utils.mfpt(walker,[(walker.root,walker.target_node)])
+args['duplicate_patterns']=walker.num_pattern_duplicates()
 
 #Only need to do scheduling if we have more than one core.
 if num_cores>1:
@@ -115,11 +116,12 @@ end_time=datetime.datetime.now()
 print(end_time)
 run_time=end_time-start_time
 failed_searches=number_of_samples-len(fpts)
+print("Runing time:{}".format(run_time))
+print("Failed Searches:{}".format(failed_searches))
 
 fig,ax=plt.subplots()
 hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
 plt.savefig('{}.png'.format(job_name))
 with open('{}.pkl'.format(job_name), 'wb') as f:
     pickle.dump(fpts,f)
-    pickle.dump(facts,f)
     pickle.dump(vars(args), f)
