@@ -362,7 +362,6 @@ def mutate_pattern(pattern,gamma):
 def sections_by_overlap(pattern_len,num_sections,frac_overlap):
     section_len=int(pattern_len/num_sections)
     shift=int(frac_overlap*section_len/2)
-    print(shift,section_len)
     sections=[ ( i*section_len-shift,(i+1)*section_len+shift ) for i in range(num_sections)]
     sections[0]=(0,section_len+shift)
     sections[-1]=((num_sections-1)*section_len-shift,pattern_len)

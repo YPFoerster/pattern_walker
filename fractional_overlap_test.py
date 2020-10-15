@@ -38,7 +38,7 @@ parser.add_argument("--num-samples", default=10, type=int, dest='number_of_sampl
 parser.add_argument("--num-cores", default=1, type=int, dest='num_cores',
     help="Number of cores requested (default: %(default)s)"
     )
-parser.add_argument("--job-id", default="own", dest="job_id",
+parser.add_argument("--job-id", default="unkown", dest="job_id",
     help="SLURM job ID (default: %(default)s)"
     )
 
@@ -62,6 +62,7 @@ num_cores=args.num_cores
 job_id=args.job_id #as assigned by SLURM, for instance
 job_name=args.job_name #as submitted to SBATCH
 out_dir=args.out_dir #where to dump all that output.
+args=vars(args)
 args['job_dir']=os.getcwd() #store the location of the script for rerefence
 
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
@@ -79,23 +80,22 @@ def make_tree(lam,N,gamma,overlap):
     G,root=utils.poisson_ditree(lam)
     leaves = utils.leaves(G)
     r=len(list(G.successors(root)))
-    print(r)
     N_eff=r*N
     sections=rw.sections_by_overlap(N_eff,r,overlap)
-    print(sections)
     walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,sections)
     walker.set_weights()
     return G,root,walker
 
 fpts=[]
 start_time=datetime.datetime.now()
+print(args)
 print("Start:",start_time)
-print(vars(args))
+
 
 make_tree=utils.seed_decorator(make_tree,0)
 G,root,walker=make_tree(lam,N,gamma,overlap)
 
-
+args['sections']=walker.sections
 args['mfpt']=utils.mfpt(walker,[(walker.root,walker.target_node)])
 args['duplicate_patterns']=walker.num_pattern_duplicates()
 
@@ -113,15 +113,15 @@ else:
 
 fpts = [np.real(x) for x in fpts if x is not None]
 end_time=datetime.datetime.now()
-print(end_time)
+print("End:",end_time)
 run_time=end_time-start_time
 failed_searches=number_of_samples-len(fpts)
-print("Runing time:{}".format(run_time))
-print("Failed Searches:{}".format(failed_searches))
+print("Runing time:",run_time)
+print("Failed Searches:",failed_searches)
 
 fig,ax=plt.subplots()
 hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
 plt.savefig('{}.png'.format(job_name))
 with open('{}.pkl'.format(job_name), 'wb') as f:
     pickle.dump(fpts,f)
-    pickle.dump(vars(args), f)
+    pickle.dump(args, f)
