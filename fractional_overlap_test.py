@@ -123,5 +123,5 @@ fig,ax=plt.subplots()
 hist,_,_=ax.hist(fpts,bins=50,color='b',alpha=0.7,density=True)
 plt.savefig('{}.png'.format(job_name))
 with open('{}.pkl'.format(job_name), 'wb') as f:
-    pickle.dump(fpts,f)
     pickle.dump(args, f)
+    pickle.dump(fpts,f)
