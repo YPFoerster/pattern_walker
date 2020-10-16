@@ -81,8 +81,7 @@ def make_tree(lam,N,gamma,overlap):
     leaves = utils.leaves(G)
     r=len(list(G.successors(root)))
     N_eff=r*N
-    sections=rw.sections_by_overlap(N_eff,r,overlap)
-    walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,sections)
+    walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,overlap)
     walker.set_weights()
     return G,root,walker
 

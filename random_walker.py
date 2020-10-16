@@ -362,8 +362,8 @@ def mutate_pattern(pattern,gamma):
     return [ 1-x if np.random.random()<gamma else x for x in pattern ]
 
 def sections_by_overlap(pattern_len,num_sections,frac_overlap):
-    overlap=int(frac_overlap*section_len)
-    sections=[ ( i*(pattern_len-shift),i*(pattern_len-shift)+pattern_len ) for i in range(num_sections)]
+    overlap=int(frac_overlap*pattern_len)
+    sections=[ ( i*(pattern_len-overlap),i*(pattern_len-overlap)+pattern_len ) for i in range(num_sections)]
     return sections
 
 
