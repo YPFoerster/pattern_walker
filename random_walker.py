@@ -348,6 +348,8 @@ class sectionedPatternWalker(patternWalker):
             elif sections_compatible<0:
                 out=out[:sections_compatible]
                 out[-1]=(out[-1][0],pattern_len)
+        elif isinstance(sections,float):
+            out=sections_by_overlap(pattern_len,len(list(G.successors(init_pos))),sections)
         return out
 
 def hamming_dist(a,b):
@@ -360,11 +362,8 @@ def mutate_pattern(pattern,gamma):
     return [ 1-x if np.random.random()<gamma else x for x in pattern ]
 
 def sections_by_overlap(pattern_len,num_sections,frac_overlap):
-    section_len=int(pattern_len/num_sections)
-    shift=int(frac_overlap*section_len/2)
-    sections=[ ( i*section_len-shift,(i+1)*section_len+shift ) for i in range(num_sections)]
-    sections[0]=(0,section_len+shift)
-    sections[-1]=((num_sections-1)*section_len-shift,pattern_len)
+    overlap=int(frac_overlap*section_len)
+    sections=[ ( i*(pattern_len-shift),i*(pattern_len-shift)+pattern_len ) for i in range(num_sections)]
     return sections
 
 
