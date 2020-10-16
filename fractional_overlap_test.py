@@ -96,6 +96,7 @@ make_tree=utils.seed_decorator(make_tree,0)
 G,root,walker=make_tree(lam,N,gamma,overlap)
 
 args['sections']=walker.sections
+args['target_node']=walker.target_node
 args['mfpt']=utils.mfpt(walker,[(walker.root,walker.target_node)])
 args['duplicate_patterns']=walker.num_pattern_duplicates()
 
