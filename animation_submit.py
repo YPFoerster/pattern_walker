@@ -35,8 +35,6 @@ mkdir_p(data_dir)
 #    'n_cores':4},{'job_name':'fpt_histogram_5','r':3,'h':4,'gamma':0.3,'N':15,'n_samples':100000,
 #    'n_cores':4}]
 
-#N=15
-cores=2
 overlap_range=[0,0.5,1.]
 gamma_range=[0,0.5,1.]#[x*0.05 for x in range(21)]
 N_range=[15]
@@ -44,8 +42,8 @@ param_range=list(product(N_range,gamma_range,overlap_range))
 n_jobs=len(param_range)
 param_range=[(num,*param_range[num]) for num in range(n_jobs) ]
 job_params_dicts=[
-    {'job_name':'{project_name}_{job_num}'.format(project_name=project_name,job_num=job_num),'r':2,'seed':0,'gamma':gamma,'N':N,'overlap':overlap ,'n_samples':10000,
-    'n_cores':cores} for (job_num,N,gamma,overlap) in param_range
+    {'job_name':'{project_name}_{job_num}'.format(project_name=project_name,job_num=job_num),'r':2,'seed':0,'gamma':gamma,'N':N,'overlap':overlap ,'n_samples':10000}
+    for (job_num,N,gamma,overlap) in param_range
 ]
 
 
@@ -69,11 +67,10 @@ for job in jobs:
         fh.writelines("#SBATCH --output={}\n".format(stdout_file))
         fh.writelines("#SBATCH --error={}\n".format(err_file))
         fh.writelines("#SBATCH --time=0-01:00\n")
-        fh.writelines("#SBATCH --mem=500\n")
+        fh.writelines("#SBATCH --mem=1000\n")
         fh.writelines("#SBATCH --nodes=1\n")
-        fh.writelines("#SBATCH --ntasks={}\n".format(cores))
         fh.writelines("module load devtools/anaconda\n")
-        fh.writelines("python poisson_tree_redraw_patterns.py \
+        fh.writelines("python animation.py \
             --lam {r} --seed {seed} --gamma {gamma} --string-len {N} --overlap {overlap}\
             --job-id {id} --job-name {job_name} --output-dir {out_dir}\
              \n".format(out_dir=job_name_data,id='$SLURM_JOB_ID',**job))
