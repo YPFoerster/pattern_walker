@@ -7,7 +7,7 @@ import networkx as nx
 import utils
 import random_walker as rw
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(16,9))
 fig.set_tight_layout(True)
 
 # Query the figure's on-screen size and DPI. Note that when saving the figure to
@@ -18,11 +18,7 @@ print('fig size: {0} DPI, size in inches {1}'.format(
 def make_tree(lam,N,gamma,overlap):
     G,root=utils.poisson_ditree(lam)
     leaves = utils.leaves(G)
-    r=len(list(G.successors(root)))
-    print(r)
-    sections=[i*int(N/r) for i in range(r+1)]
-    sections=[(sections[i],min(sections[i+1]+overlap,N)) for i in range(len(sections[:-1]))]
-    walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,sections)
+    walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,overlap)
     walker.set_weights()
     return G,root,walker
 
@@ -31,10 +27,10 @@ make_tree=utils.seed_decorator(make_tree,0)
 
 #Create patternWalker based on the above tree.
 pattern_len=30 #String/pattern length
-flip_rate=5/pattern_len #Bit flipping rate for propagating patterns
+flip_rate=0./pattern_len #Bit flipping rate for propagating patterns
 
 offspring_factor=2.
-overlap=10
+overlap=0.
 H,root,G=make_tree(offspring_factor,pattern_len,flip_rate,overlap)
 
 #G=rw.patternWalker(H,root,pattern_len,flip_rate,metric=metric)
@@ -63,8 +59,11 @@ def update(i):
     return ax
 
 if __name__ == '__main__':
-    anim = FuncAnimation(fig, update, frames=np.arange(0, 1000), interval=1)
-    plt.show()
+    anim = FuncAnimation(fig, update, frames=np.arange(0, 1000), interval=50)
+    if len(sys.argv) > 1 and sys.argv[1] == 'save':
+        anim.save('./outputs/animations/gamma_0_overlap_0.gif', dpi=100, writer='imagemagick')
+    else:
+        plt.show()
     """
     # FuncAnimation will call the 'update' function for each frame; here
     # animating over 10 frames, with an interval of 200ms between frames.
