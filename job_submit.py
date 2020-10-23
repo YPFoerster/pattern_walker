@@ -14,7 +14,7 @@ def mkdir_p(dir):
         os.mkdir(dir)
 
 
-project_name='redraw_patterns_combi_N_5-80_o_g'
+project_name='redraw_patterns_combi_N_10-20_o_g_rescale'
 project_dir='{}/{}'.format(os.getcwd(),project_name)
 
 mkdir_p(project_dir)
@@ -35,12 +35,19 @@ mkdir_p(data_dir)
 #    'n_cores':4},{'job_name':'fpt_histogram_5','r':3,'h':4,'gamma':0.3,'N':15,'n_samples':100000,
 #    'n_cores':4}]
 
-#N=15
+
 cores=2
-overlap_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21) ]
-gamma_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21)]
-N_range=[5,10,20,40,80]
-param_range=list(product(N_range,gamma_range,overlap_range))
+#overlap_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21) ]
+#gamma_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21)]
+N_range=[10,20,40,80]
+param_range=[]
+for N in N_range:
+    overlap_range=np.arange(0,10.5/N,0.5/N)
+    gamma_range=np.arange(0,10.5/N,0.5/N)
+    for (g,o) in product(gamma_range,overlap_range):
+        param_range.append((N,g,o))    
+
+#param_range=list(product(N_range,gamma_range,overlap_range))
 n_jobs=len(param_range)
 param_range=[(num,*param_range[num]) for num in range(n_jobs) ]
 job_params_dicts=[
