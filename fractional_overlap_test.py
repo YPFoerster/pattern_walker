@@ -79,8 +79,6 @@ def search_target(walker_instance):
 def make_tree(lam,N,gamma,overlap):
     G,root=utils.poisson_ditree(lam)
     leaves = utils.leaves(G)
-    r=len(list(G.successors(root)))
-    N_eff=r*N
     walker=rw.sectionedPatternWalker(G.copy(),root,N,gamma,overlap)
     walker.set_weights()
     return G,root,walker
@@ -116,7 +114,7 @@ end_time=datetime.datetime.now()
 print("End:",end_time)
 run_time=end_time-start_time
 failed_searches=number_of_samples-len(fpts)
-print("Runing time:",run_time)
+print("Running time:",run_time)
 print("Failed Searches:",failed_searches)
 
 fig,ax=plt.subplots()
