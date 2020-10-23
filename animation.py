@@ -110,7 +110,7 @@ nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='g',ax=ax)
 
 
 anim = FuncAnimation(fig, update, frames=np.arange(0, 1000), interval=500)
-anim.save('{job_id}_gamma_{gamma}_overlap_{overlap}.gif'.format(**args), dpi=80, writer='imagemagick')
+anim.save('{job_name}_gamma_{gamma}_overlap_{overlap}.gif'.format(**args), dpi=80, writer='imagemagick')
 
 """
 # FuncAnimation will call the 'update' function for each frame; here
