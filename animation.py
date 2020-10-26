@@ -83,7 +83,7 @@ print(args)
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
 
 
-fig, ax = plt.subplots(figsize=(16,9))
+fig, ax = plt.subplots(figsize=(8,4.5))
 fig.set_tight_layout(True)
 
 # Query the figure's on-screen size and DPI. Note that when saving the figure to
@@ -109,7 +109,7 @@ nx.draw_networkx_nodes(G,pos,nodelist=[root],node_color='r',ax=ax)
 nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='g',ax=ax)
 
 
-anim = FuncAnimation(fig, update, frames=np.arange(0, 1000), interval=500)
+anim = FuncAnimation(fig, update, frames=np.arange(0, 500), interval=50)
 anim.save('{job_name}_gamma_{gamma}_overlap_{overlap}.gif'.format(**args), dpi=80, writer='imagemagick')
 
 """

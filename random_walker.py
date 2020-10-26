@@ -295,7 +295,8 @@ class sectionedPatternWalker(patternWalker):
 
         self.sections=self.sections_prep(G,init_pos,pattern_len,sections)
         self.num_sections=len(self.sections)
-        super(sectionedPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,search_for)
+        full_pattern_len=self.sections[-1][-1]-self.sections[0][0]
+        super(sectionedPatternWalker,self).__init__(G,init_pos,full_pattern_len,flip_rate,metric,search_for)
 
 
     def set_patterns(self):
@@ -320,13 +321,13 @@ class sectionedPatternWalker(patternWalker):
                                                 )
             queue=[suc for node in queue for suc in self.successors(node)]
 
-        principle_branches=list(self.successors(self.root))
+        main_brances=list(self.successors(self.root))
         for i in range(self.num_sections):
-            self.nodes[principle_branches[i]]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[principle_branches[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
-            #self.nodes[principle_branches[i]]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
-            #self.nodes[principle_branches[i]]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
+            self.nodes[main_brances[i]]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[main_brances[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
+            #self.nodes[main_brances[i]]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
+            #self.nodes[main_brances[i]]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
 
-            for node in nx.descendants(self,principle_branches[i]):
+            for node in nx.descendants(self,main_brances[i]):
                 self.nodes[node]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
                 #self.nodes[node]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
                 #self.nodes[node]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
