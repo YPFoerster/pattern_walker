@@ -200,6 +200,15 @@ class patternWalker(walker):
             self.target_node=search_for
             self.target_pattern=self.nodes[self.target_node]['pattern']
 
+    def set_target(self,node):
+        """Set new target along with corresponding target pattern.
+        """
+        if node in self.nodes():
+            self.target_node=node
+            self.target_pattern=self.nodes[node]['pattern']
+        else:
+            print("Can't set {} as target. Node is not in graph.".format(node))
+
     def set_patterns(self):
         """
         Assigns a binary string to every node in the graph, successively by
@@ -292,11 +301,18 @@ class sectionedPatternWalker(patternWalker):
     """
 
     def __init__(self,G,init_pos,pattern_len,flip_rate,sections,metric=None,search_for=None):
+        target=None
+        if search_for is None:
+            #In case a seed is fixed, this needs to be done first, otherwise
+            #otherwise the target changes with the overlap.
+            target=np.random.choice(utils.leaves(G))
+        elif search_for in G.nodes:
+            target=search_for
 
         self.sections=self.sections_prep(G,init_pos,pattern_len,sections)
         self.num_sections=len(self.sections)
         full_pattern_len=self.sections[-1][-1]-self.sections[0][0]
-        super(sectionedPatternWalker,self).__init__(G,init_pos,full_pattern_len,flip_rate,metric,search_for)
+        super(sectionedPatternWalker,self).__init__(G,init_pos,full_pattern_len,flip_rate,metric,target)
 
 
     def set_patterns(self):
