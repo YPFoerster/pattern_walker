@@ -35,7 +35,7 @@ def locate(pattern, root_path):
             yield os.path.join(path, filename)
 
 def get_data_from(path):
-    for file in locate('*.pkl',path):
+    for file in locate('20201026_N50*.pkl',path):
         print(file)
         with open(file,'rb') as f:
             data=[]
@@ -46,7 +46,7 @@ def get_data_from(path):
                     break
             try:
                 for time in data[1]:
-                    yield ( data[0].get('job_id'),file,data[0].get('seed'),data[0].get('branching_factor'),np.round(data[0].get('gamma'),2),data[0].get('string_len'),data[0].get('duplicate_patterns'),np.round(data[0].get('overlap'),2),data[0].get('target_node'),np.real(data[0].get('mfpt')),data[0].get('job_dir'),time )
+                    yield ( data[0].get('job_id'),file,data[0].get('seed'),data[0].get('branching_factor'),data[0].get('gamma'),data[0].get('string_len'),data[0].get('duplicate_patterns'),data[0].get('overlap'),data[0].get('target_node'),np.real(data[0].get('mfpt')),data[0].get('job_dir'),time )
             except IndexError as e:
                 print('Error while accessing ',file)
                 print(e)
