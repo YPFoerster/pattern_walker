@@ -22,7 +22,11 @@ parser.add_argument("--table", default='unknown', dest='table_name',
     )
 
 parser.add_argument("--output", default='unknown', dest='output',
-    help="output_prefix, including path, if appropriate. (default: %(default)s)"
+    help="Output_prefix, including path, if appropriate. (default: %(default)s)"
+    )
+
+parser.add_argument("--round", default=2, type=int ,dest="round",
+    help="Digit to round gamma and overlap to in the output csv's."
     )
 
 args=parser.parse_args()
@@ -41,7 +45,7 @@ with sql.connect(args.database) as conn:
         gamma_range=overlap_cur.execute("SELECT DISTINCT gamma FROM {} order by gamma ASC".format(args.table_name)).fetchall()
         param_range=product(overlap_range,gamma_range)
         print(overlap_range,gamma_range,param_range)
-        N_range=[50]
+        N_range=[15]
         mfpts={ N : pd.DataFrame(np.zeros((len(gamma_range),len(overlap_range))),index=gamma_range,columns=overlap_range) for N in N_range}
         stds={ N : pd.DataFrame(np.zeros((len(gamma_range),len(overlap_range))),index=gamma_range,columns=overlap_range) for N in N_range}
         for N in N_range:
@@ -58,16 +62,21 @@ with sql.connect(args.database) as conn:
                 stds[N][o][g]=np.std(temp)
                 print(N,o,g,mfpts[N][o][g],stds[N][o][g])
 
+            mfpts[N].columns=np.round(mfpts[N].columns,args.round)
+            mfpts[N].index=np.round(mfpts[N].index,args.round)
+            stds[N].columns=np.round(stds[N].columns,args.round)
+            stds[N].index=np.round(stds[N].index,args.round)
             print(mfpts[N])
             print(stds[N])
             mfpts[N].to_csv('{}_mfpts_N_{}.csv'.format(args.output,N))
-            stds[N].to_csv('{}_stds_{}.csv'.format(args.output,N))
-            f=plt.figure()
-            f.tight_layout()
+            stds[N].to_csv('{}_stds_N_{}.csv'.format(args.output,N))
+            plt.figure()
             sns.heatmap(mfpts[N])
+            plt.tight_layout()
             plt.savefig('{}_mfpts_heatmap_N_{}.pdf'.format(args.output,N))
             plt.close()
             plt.figure()
             sns.heatmap(stds[N])
-            plt.savefig('{}_stds_N_{}.pdf'.format(args.output,N))
+            plt.tight_layout()
+            plt.savefig('{}_stds_heatmap_N_{}.pdf'.format(args.output,N))
             plt.close()
