@@ -45,7 +45,7 @@ with sql.connect(args.database) as conn:
         gamma_range=overlap_cur.execute("SELECT DISTINCT gamma FROM {} order by gamma ASC".format(args.table_name)).fetchall()
         param_range=product(overlap_range,gamma_range)
         print(overlap_range,gamma_range,param_range)
-        N_range=[15]
+        N_range=[20]
         mfpts={ N : pd.DataFrame(np.zeros((len(gamma_range),len(overlap_range))),index=gamma_range,columns=overlap_range) for N in N_range}
         stds={ N : pd.DataFrame(np.zeros((len(gamma_range),len(overlap_range))),index=gamma_range,columns=overlap_range) for N in N_range}
         for N in N_range:
