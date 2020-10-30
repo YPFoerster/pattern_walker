@@ -383,7 +383,13 @@ def sections_by_overlap(pattern_len,num_sections,frac_overlap):
     sections=[ ( i*(pattern_len-overlap),i*(pattern_len-overlap)+pattern_len ) for i in range(num_sections)]
     return sections
 
-
+def make_tree(lam,pattern_len,flip_rate,overlap):
+    # TODO: The decorating bit can be done more elegantly.
+    H,root=utils.poisson_ditree(lam)
+    G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap)
+    G.set_weights()
+    return H,root,G
+make_tree=utils.seed_decorator(make_tree,0)
 
 if __name__=="__main__":
     import doctest
