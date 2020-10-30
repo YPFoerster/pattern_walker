@@ -8,9 +8,6 @@ import utils
 import random_walker as rw
 
 
-# Query the figure's on-screen size and DPI. Note that when saving the figure to
-# a file, we need to provide a DPI for that separately.
-
 def make_tree(lam,N,gamma,overlap):
     G,root=utils.poisson_ditree(lam)
     leaves = utils.leaves(G)
@@ -39,8 +36,8 @@ alpha=list([G.root]+target_branch)
 beta=list(set(H.nodes)-set(alpha))
 
 #T=nx.to_numpy_matrix(G,nodelist=[root]+[x for x in H.successors(root)])
-T=nx.to_numpy_matrix(H,nodelist=alpha,weight='weight')
-print(T[0,:],T[:,0])
+T=nx.to_numpy_matrix(G,nodelist=alpha,weight='weight')
+print(np.sum(T,axis=-1),T[1,:])
 
 """
 #G=rw.patternWalker(H,root,pattern_len,flip_rate,metric=metric)

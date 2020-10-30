@@ -245,6 +245,7 @@ def uniform_ditree(n,seed=None):
     G,root=directify(G,root)
     return G,root
 
+
 def list_degree_nodes(G,deg,max_num=1):
     """
     Return list of nodes (max_num or fewer) of G with degree equal to deg.
@@ -537,6 +538,22 @@ def mfpt(
         return out
 
 
+def block_indeces(G,node):
+    """
+    Return index lists for the block contain node and the relevant other block,
+    determined based on the hierarchy_backup of G. The former block contains the
+    root index.
+
+    G: rw.patternWalker
+    node: node in G other than G.root
+    """
+    temp=list(set(nx.ancestors(G.hierarchy_backup,node))-set([G.root]))
+    branch=[x for x in temp if x in G.hierarchy_backup.successors(G.root) ]
+    branch=branch+list(nx.descendants(G.hierarchy_backup,branch[0]))
+    alpha=list([G.root]+branch)
+    beta=list(set(G.nodes)-set(alpha))
+    return alpha, beta
+
 def above(G,x):
     return len(nx.ancestors(G,x))
 
@@ -560,7 +577,7 @@ def timer_decorator(func,args,kwargs):
     return wrapper
 
 
-def seed_decorator(func,seed):
+def seed_decorator(func,seed=0):
     """Set fixed seed in front of function and reset afterwards.
     # TODO: Can this done more elegantly? probably..."""
     def actual_seed_decorator(func):
@@ -574,14 +591,12 @@ def seed_decorator(func,seed):
         return wrapper
     return actual_seed_decorator(func)
 
-
 def generate_unique_node():
     """
     The networkx.utils function uses uuid.uuid1(). With uuid4() it is easier to
     make the results reproducible.
     """
     return str(uuid.uuid4())
-
 
 
 if __name__=="__main__":
