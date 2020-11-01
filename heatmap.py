@@ -26,8 +26,12 @@ parser.add_argument("--output", default='unknown', dest='output',
     )
 
 parser.add_argument("--round", default=2, type=int ,dest="round",
-    help="Digit to round gamma and overlap to in the output csv's."
+    help="Digit to round gamma and overlap to in the output csv's. (default: %(default)s)"
     )
+
+parser.add_argument("--string_len", default=15, type=int, dest="string_len",
+    help="Length of patterns to take into account. (default: %(default)s)"
+)
 
 args=parser.parse_args()
 
@@ -41,11 +45,11 @@ with sql.connect(args.database) as conn:
         conn.row_factory = lambda cursor, row: row[0]
         overlap_cur=conn.cursor()
         gamma_cur=conn.cursor()
-        overlap_range=overlap_cur.execute("SELECT DISTINCT overlap FROM {} order by overlap ASC".format(args.table_name)).fetchall()
-        gamma_range=overlap_cur.execute("SELECT DISTINCT gamma FROM {} order by gamma ASC".format(args.table_name)).fetchall()
+        overlap_range=overlap_cur.execute("SELECT DISTINCT overlap FROM {} WHERE string_len=? order by overlap ASC".format(args.table_name),(args.string_len,)).fetchall()
+        gamma_range=overlap_cur.execute("SELECT DISTINCT gamma FROM {} WHERE string_len=? order by gamma ASC".format(args.table_name),(args.string_len,)).fetchall()
         param_range=product(overlap_range,gamma_range)
         print(overlap_range,gamma_range,param_range)
-        N_range=[20]
+        N_range=[args.string_len]
         mfpts={ N : pd.DataFrame(np.zeros((len(gamma_range),len(overlap_range))),index=gamma_range,columns=overlap_range) for N in N_range}
         stds={ N : pd.DataFrame(np.zeros((len(gamma_range),len(overlap_range))),index=gamma_range,columns=overlap_range) for N in N_range}
         for N in N_range:
@@ -56,7 +60,7 @@ with sql.connect(args.database) as conn:
 
             for (o,g) in param_range:
                 cur=conn.cursor()
-                cur.execute("SELECT expected_FPT FROM redraw_patterns WHERE overlap = ? AND gamma = ? and string_len=?",(o,g,N))
+                cur.execute("SELECT hitting_time FROM redraw_patterns WHERE overlap = ? AND gamma = ? and string_len=?",(o,g,N))
                 temp=list(cur.fetchall())
                 mfpts[N][o][g]=np.mean(temp)
                 stds[N][o][g]=np.std(temp)
