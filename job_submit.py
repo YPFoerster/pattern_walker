@@ -14,7 +14,7 @@ def mkdir_p(dir):
         os.mkdir(dir)
 
 
-project_name='20201029_N20_redraw_patterns_combi_o_g'
+project_name='20201029_N100_redraw_patterns_combi_o_g'
 project_dir='{}/{}'.format(os.getcwd(),project_name)
 
 mkdir_p(project_dir)
@@ -39,11 +39,11 @@ mkdir_p(data_dir)
 cores=2
 #overlap_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21) ]
 #gamma_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21)]
-N_range=[20]
+N_range=[100]
 param_range=[]
 for N in N_range:
-    overlap_range=np.arange(0,1.05,0.05)
-    gamma_range=np.arange(0,1.05,0.05)
+    overlap_range=np.arange(0,1.01,0.01)
+    gamma_range=np.arange(0,1.01,0.01)
     for (g,o) in product(gamma_range,overlap_range):
         param_range.append((N,g,o))    
 
@@ -75,7 +75,7 @@ for job in jobs:
         #fh.writelines("#SBATCH --workdir={}\n".format(project_dir))
         fh.writelines("#SBATCH --output={}\n".format(stdout_file))
         fh.writelines("#SBATCH --error={}\n".format(err_file))
-        fh.writelines("#SBATCH --time=0-00:40\n")
+        fh.writelines("#SBATCH --time=0-00:15\n")
         fh.writelines("#SBATCH --mem=500\n")
         fh.writelines("#SBATCH --nodes=1\n")
         fh.writelines("#SBATCH --ntasks={}\n".format(cores))
