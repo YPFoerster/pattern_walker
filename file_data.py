@@ -35,7 +35,7 @@ def locate(pattern, root_path):
             yield os.path.join(path, filename)
 
 def get_data_from(path):
-    for file in locate('*.pkl',path):
+    for file in locate('*N100*.pkl',path):
         print(file)
         with open(file,'rb') as f:
             data=[]
