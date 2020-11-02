@@ -62,8 +62,8 @@ with sql.connect(args.database) as conn:
         else:
             param_table=args.table_name
 
-        overlap_range=overlap_cur.execute("SELECT DISTINCT overlap FROM {} WHERE string_len=? order by overlap ASC".format(param_table),(args.string_len,)).fetchall()
-        gamma_range=gamma_cur.execute("SELECT DISTINCT gamma FROM {} WHERE string_len=? order by gamma ASC".format(param_table),(args.string_len,)).fetchall()
+        overlap_range=overlap_cur.execute("SELECT DISTINCT overlap FROM {} WHERE string_len=?".format(param_table),(args.string_len,)).fetchall()
+        gamma_range=gamma_cur.execute("SELECT DISTINCT gamma FROM {} WHERE string_len=?".format(param_table),(args.string_len,)).fetchall()
         param_range=product(overlap_range,gamma_range)
         print('Parameters found: ', gamma_range,overlap_range)
         mfpts=pd.DataFrame(np.zeros((len(gamma_range),len(overlap_range))),index=gamma_range,columns=overlap_range)
@@ -98,12 +98,14 @@ with sql.connect(args.database) as conn:
                 temp=list(cur.fetchall())
                 mfpts[o][g]=np.mean(temp)
                 stds[o][g]=np.std(temp)
-                print(N,o,g,mfpts[o][g],stds[o][g])
+                print(N,',',o,',',g,',',mfpts[o][g],',',stds[o][g])
 
-        mfpts.columns=np.round(mfpts.columns,args.round)
-        mfpts.index=np.round(mfpts.index,args.round)
-        stds.columns=np.round(stds.columns,args.round)
-        stds.index=np.round(stds.index,args.round)
+        for df in [mfpts,stds]:
+            df.columns=np.round(df.columns,args.round)
+            df.index=np.round(df.index,args.round)
+            df=df.reindex(np.sort(df.index))
+            df=df.reindex(columns=np.sort(df.columns))
+
         print(mfpts)
         print(stds)
         mfpts.to_csv('{}_mfpts_N_{}.csv'.format(args.output,N))
