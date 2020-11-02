@@ -12,12 +12,16 @@ def mkdir_p(dir):
     '''make a directory (dir) if it doesn't exist'''
     if not os.path.exists(dir):
         os.mkdir(dir)
-
+        return 1 #return 1 if directory is created because we might want to add it to .gitignore.
 
 project_name='20201029_N100_redraw_patterns_combi_o_g'
 project_dir='{}/{}'.format(os.getcwd(),project_name)
 
-mkdir_p(project_dir)
+project_exists=mkdir_p(project_dir)
+if not project_exists:
+    with open('.gitignore','a') as f:
+        f.writelines(project_dir,"\n")
+
 #os.chdir(project_dir)
 job_directory = os.path.join(project_dir,".job")
 scratch = '/scratch/users/k1801311'
