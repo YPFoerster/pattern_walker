@@ -222,7 +222,7 @@ class patternWalker(walker):
         queue=list(self.successors(self.root))
         while len(queue)>0:
             for node in queue:
-                pattern=self.nodes[list(self.predecessors(node))[0]]['pattern']
+                pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
                 self.nodes[node]['pattern']=mutate_pattern(
                                                 pattern,self.flip_rate
                                                 )
@@ -285,7 +285,7 @@ class sectionedPatternWalker(patternWalker):
     >>> from networkx.generators.classic import balanced_tree
     >>> G=balanced_tree(1,10,create_using=nx.DiGraph)
     >>> root=0
-    >>> w=sectionedPatternWalker(G,root,20,0.005)
+    >>> w=sectionedPatternWalker(G,root,pattern_len=20,flip_rate=0.005,sections=0.5)
     >>> 0<= w.num_pattern_duplicates()
     True
     >>> w.set_weights()
@@ -368,6 +368,54 @@ class sectionedPatternWalker(patternWalker):
         elif isinstance(sections,float):
             out=sections_by_overlap(pattern_len,len(list(G.successors(init_pos))),sections)
         return out
+
+
+class SRPWalker(sectionedPatternWalker):
+    """
+    Example:
+    >>> from networkx.generators.classic import balanced_tree
+    >>> G=balanced_tree(1,10,create_using=nx.DiGraph)
+    >>> root=0
+    >>> w=SRPWalker(G,root,pattern_len=20,flip_rate=0.005,sections=0.5,num_refs=2)
+    >>> 0<= w.num_pattern_duplicates()
+    True
+    >>> w.set_weights()
+    >>> for i in range(20):
+    ...     w.step()
+    >>> len(w.trace)
+    21
+    >>> w.reset_walker()
+    >>> w.trace
+    [0]
+    >>> w.trace==[w.x]
+    True
+    >>> w.reset_patterns()
+    >>> w.references[0] in w.edges()
+    True
+    """
+    def __init__(self,G,init_pos,pattern_len,flip_rate,sections,num_refs,metric=None,search_for=None):
+        target=None
+        if search_for is None:
+            #In case a seed is fixed, this needs to be done first, otherwise
+            #otherwise the target changes with the overlap.
+            target=np.random.choice(utils.leaves(G))
+        elif search_for in G.nodes:
+            target=search_for
+        self.references=[np.random.choice(G.nodes(),2) for _ in range(num_refs)]
+        super(SRPWalker,self).__init__(G,init_pos,pattern_len,flip_rate,sections,metric,target)
+        self.add_edges_from(self.references)
+
+    def reset_patterns(self):
+        """
+        Like set_patterns, but first resets edge data, because set_weights
+        introduces edges blurring the hierarchy on that set_patterns relies.
+        """
+        self.clear()
+        self.add_edges_from(self.hierarchy_backup.edges())
+        self.set_patterns()
+        self.add_edges_from(self.references)
+        self.set_weights()
+
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b (truncates at len(a))."""
