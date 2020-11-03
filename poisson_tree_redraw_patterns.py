@@ -31,8 +31,8 @@ parser.add_argument("--string-len", default=10, type=int, dest='string_len',
     help="Len of bit strings assigned to each node (default: %(default)s)"
     )
 parser.add_argument("--overlap", default=0, type=float, dest='overlap',
-    help="Fractional overlap of adjacent string sections (every sections reached out to the right over\
-          the regular boundary index*int(string_length/num_sections). (default: %(default)s)")
+    help="Fractional overlap of adjacent string sections (every sections reaches out to the left over\
+          the regular boundary by overlap*string_len bits. (default: %(default)s)")
 
 parser.add_argument("--num-samples", default=10, type=int, dest='number_of_samples',
     help="Number of repeated walks stopping at target. (default: %(default)s)"
