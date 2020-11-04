@@ -83,7 +83,7 @@ print(args)
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
 
 
-fig, ax = plt.subplots(figsize=(8,4.5))
+fig, ax = plt.subplots(figsize=(10,10))
 fig.set_tight_layout(True)
 
 # Query the figure's on-screen size and DPI. Note that when saving the figure to
@@ -103,14 +103,23 @@ H,root,G=make_tree(lam,N,gamma,overlap)
 #G.set_weights()
 pos=graphviz_layout(G,prog='dot') #Positions can be taken from H
 (edges,weights) = zip(*nx.get_edge_attributes(G,'weight').items())
-nx.draw(G, pos, edgelist=edges, edge_color=weights, edge_cmap=plt.cm.Blues,ax=ax)
-nx.draw_networkx_nodes(G,pos,nodelist=[root],node_color='r',ax=ax)
-#Mark target node in green.
-nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='g',ax=ax)
 
+for timestep in range(500):
 
-anim = FuncAnimation(fig, update, frames=np.arange(0, 500), interval=50)
-anim.save('{job_name}_gamma_{gamma}_overlap_{overlap}.gif'.format(**args), dpi=80, writer='imagemagick')
+    label = 'timestep {0}'.format(timestep)
+    print(label)
+
+    nx.draw(G, pos, edgelist=edges, edge_color=weights, node_color='k',node_size=50,edge_cmap=plt.cm.Blues,ax=ax)
+    nx.draw_networkx_nodes(G,pos,nodelist=[root],node_color='b',node_size=80,ax=ax)
+    #Mark target node in green.
+    nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='b',node_size=80,ax=ax)
+    # Update the line and the axes (with a new xlabel). Return a tuple of
+    # "artists" that have to be redrawn for this frame.
+    nx.draw_networkx_nodes(G,pos,nodelist=[G.x],node_color='r',node_size=80, ax=ax)
+    fig.savefig('N{}_gamma{}_overlap{}_{}.jpg'.format(N,str(gamma).replace('.','-'),str(overlap).replace('.','-'),timestep))
+    ax.clear()
+    G.step()
+
 
 """
 # FuncAnimation will call the 'update' function for each frame; here
