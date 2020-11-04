@@ -66,10 +66,10 @@ args['job_dir']=os.getcwd() #store the location of the script for rerefence
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
 
 
-def search_target(walker_instance):
+def search_target(sample_number):
     """Copy walker, get new strings and calculate mfpts."""
-    walker=copy.deepcopy(walker_instance)
-    walker.reset_patterns()
+    _,_,walker=make_tree(lam,N,gamma,overlap)
+    walker.set_weigths()
     while walker.x != walker.target_node:
         walker.step()
     return walker.t
@@ -90,20 +90,18 @@ print(args)
 print("Start:",start_time)
 
 
-G,root,walker=make_tree(lam,N,gamma,overlap)
-while len(walker)<3:
-    G,root,walker=make_tree(lam,N,gamma,overlap)
+#G,root,walker=make_tree(lam,N,gamma,overlap)
 
-args['sections']=walker.sections
-args['target_node']=walker.target_node
-args['mfpt']=utils.mfpt(walker,[(walker.root,walker.target_node)])
-args['duplicate_patterns']=walker.num_pattern_duplicates()
+#args['sections']=walker.sections
+#args['target_node']=walker.target_node
+#args['mfpt']=utils.mfpt(walker,[(walker.root,walker.target_node)])
+#args['duplicate_patterns']=walker.num_pattern_duplicates()
 
 #Only need to do scheduling if we have more than one core.
 if num_cores>1:
     with mp.Pool(num_cores) as p:
         print('Enter multiprocessing.')
-        for times in p.map(search_target, [walker]*number_of_samples):
+        for times in p.map(search_target, range(number_of_samples)):
             fpts.append(times)
         print('Finished multiprocessing.')
 else:
