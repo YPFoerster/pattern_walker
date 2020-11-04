@@ -69,7 +69,7 @@ os.chdir(out_dir) #This way, we can simply write files without specified paths.
 def search_target(sample_number):
     """Copy walker, get new strings and calculate mfpts."""
     _,_,walker=make_tree(lam,N,gamma,overlap)
-    walker.set_weigths()
+    walker.set_weights()
     while walker.x != walker.target_node:
         walker.step()
     return walker.t
