@@ -14,13 +14,14 @@ def mkdir_p(dir):
         os.mkdir(dir)
         return 1 #return 1 if directory is created because we might want to add it to .gitignore.
 
-project_name='20201029_N100_redraw_patterns_combi_o_g'
+project_name='20201104_ptrp_no_seed_combi_o_g'
+
 project_dir='{}/{}'.format(os.getcwd(),project_name)
 
 project_exists=mkdir_p(project_dir)
 if not project_exists:
     with open('.gitignore','a') as f:
-        f.writelines(project_dir,"\n")
+        f.writelines([project_dir,"\n"])
 
 #os.chdir(project_dir)
 job_directory = os.path.join(project_dir,".job")
@@ -43,20 +44,18 @@ mkdir_p(data_dir)
 cores=2
 #overlap_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21) ]
 #gamma_range=np.arange(0.1,1.1,0.1)#[x*0.05 for x in range(21)]
-N_range=[100]
+N=20
 param_range=[]
-for N in N_range:
-    overlap_range=np.arange(0,1.01,0.01)
-    gamma_range=np.arange(0,1.01,0.01)
-    for (g,o) in product(gamma_range,overlap_range):
-        param_range.append((N,g,o))    
+overlap_range=np.arange(0,1.+1/N,1/N)
+gamma_range=np.arange(0,1.+1/N,1/N)
+param_range=list(product(overlap_range,gamma_range))    
 
 #param_range=list(product(N_range,gamma_range,overlap_range))
 n_jobs=len(param_range)
 param_range=[(num,*param_range[num]) for num in range(n_jobs) ]
 job_params_dicts=[
-    {'job_name':'{project_name}_{job_num}'.format(project_name=project_name,job_num=job_num),'r':2,'seed':0,'gamma':gamma,'N':N,'overlap':overlap ,'n_samples':10000,
-    'n_cores':cores} for (job_num,N,gamma,overlap) in param_range
+    {'job_name':'{project_name}_{job_num}'.format(project_name=project_name,job_num=job_num),'r':2,'seed':0,'gamma':gamma,'N':N,'overlap':overlap,'num_refs':20,'n_samples':10000,
+    'n_cores':cores} for (job_num,gamma,overlap) in param_range
 ]
 
 
@@ -79,13 +78,13 @@ for job in jobs:
         #fh.writelines("#SBATCH --workdir={}\n".format(project_dir))
         fh.writelines("#SBATCH --output={}\n".format(stdout_file))
         fh.writelines("#SBATCH --error={}\n".format(err_file))
-        fh.writelines("#SBATCH --time=0-00:15\n")
-        fh.writelines("#SBATCH --mem=500\n")
+        fh.writelines("#SBATCH --time=0-00:20\n")
+        fh.writelines("#SBATCH --mem=200\n")
         fh.writelines("#SBATCH --nodes=1\n")
         fh.writelines("#SBATCH --ntasks={}\n".format(cores))
         fh.writelines("module load devtools/anaconda\n")
-        fh.writelines("python poisson_tree_redraw_patterns.py \
-            --lam {r} --seed {seed} --gamma {gamma} --string-len {N} --overlap {overlap}\
+        fh.writelines("python ptrp_no_seed.py \
+            --lam {r} --gamma {gamma} --string-len {N} --overlap {overlap}\
             --num-samples {n_samples} --num-cores {n_cores} --job-id {id} \
             --job-name {job_name} --output-dir {out_dir}\
              \n".format(out_dir=job_name_data,id='$SLURM_JOB_ID',**job))
