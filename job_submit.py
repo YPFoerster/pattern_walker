@@ -12,7 +12,7 @@ def mkdir_p(dir):
     '''make a directory (dir) if it doesn't exist'''
     if not os.path.exists(dir):
         os.mkdir(dir)
-        return 1 #return 1 if directory is created because we might want to add it to .gitignore.
+        return 0 #return 0 if directory is created because we might want to add it to .gitignore.
 
 project_name='20201104_ptrp_no_seed_combi_o_g'
 
