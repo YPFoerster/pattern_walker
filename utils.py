@@ -74,7 +74,7 @@ def random_dag(nodes, edges):
             G.remove_edge(a,b)
     return G
 
-def poisson_ditree(lam,n_max=100):
+def poisson_ditree(lam,n_max=100,n_min=3):
     """
     Return a directed tree with Poissonian branching. Terminate branching when
     number of nodes >=n_max. NOTE, number of nodes is not prevented from
@@ -82,6 +82,7 @@ def poisson_ditree(lam,n_max=100):
 
     lam-- Parameter of Poissonian branching distribution.
     n_max-- Size threshold to stop branching.
+    n_min-- Lower size threshold
 
     return-- (G,root), with G the tree and root the first node.
 
@@ -95,21 +96,20 @@ def poisson_ditree(lam,n_max=100):
     G=nx.DiGraph()
     root=generate_unique_node() #all edges will be pointing away from root.
     G.add_node(root)
-    current_gen=[root]
-    size=1
-    new_gen=[]
-    #Add children until n_max is exceeded.
-    while size<n_max and len(current_gen)>0:
+    while len(G)<n_min:
+        current_gen=[root]
         new_gen=[]
-        for node in current_gen:
-            offspring = np.random.poisson(lam) #draw number of children
-            size+=offspring
-            #Create a unique node for every child
-            temp=[generate_unique_node() for x in range(offspring)]
-            for child in temp:
-                new_gen.append(child)
-                G.add_edge(node, child)
-        current_gen=new_gen.copy()
+        #Add children until n_max is exceeded.
+        while len(G)<n_max and len(current_gen)>0:
+            new_gen=[]
+            for node in current_gen:
+                offspring = np.random.poisson(lam) #draw number of children
+                #Create a unique node for every child
+                temp=[generate_unique_node() for x in range(offspring)]
+                for child in temp:
+                    new_gen.append(child)
+                    G.add_edge(node, child)
+            current_gen=new_gen.copy()
     return G,root
 
 def balanced_directed_tree(r,h):
