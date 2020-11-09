@@ -16,7 +16,7 @@ def mkdir_p(dir):
     else: 
         return 1
 
-project_name='20201104_ptrp_no_seed_combi_o_g'
+project_name='20201109_ptrt_N20_combi_o_g'
 
 project_dir=os.path.join(os.getcwd(),project_name)
 
@@ -87,8 +87,8 @@ for job in jobs:
         fh.writelines("module load devtools/anaconda\n")
         fh.writelines("python ptrp_no_seed.py \
             --lam {r} --gamma {gamma} --string-len {N} --overlap {overlap}\
-            --num-samples {n_samples} --num-cores {n_cores} --job-id {id} \
-            --job-name {job_name} --output-dir {out_dir}\
+            --seed {seed} --num-samples {n_samples} --num-cores {n_cores}\
+             --job-id {id} --job-name {job_name} --output-dir {out_dir}\
              \n".format(out_dir=job_name_data,id='$SLURM_JOB_ID',**job))
 
     subprocess.run("sbatch {}".format(job_file),shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

@@ -1,4 +1,4 @@
-"""In this version we reset patterns for every iteration. ptrp='poisson tree redraw patterns' """
+"""In this version we reset the target on a fixed tree for every iteration. ptrt='poisson tree redraw target.'"""
 
 import random_walker as rw
 import utils
@@ -20,6 +20,9 @@ parser = argparse.ArgumentParser(description="""
 
 parser.add_argument("--lam", default=0.5, type=float, dest='branching_factor',
     help="Poisson branching factor (default: %(default)s)"
+    )
+parser.add_argument("--seed", default=0, type=int, dest='seed',
+    help="Seed for random graph generation %(default)s"
     )
 parser.add_argument("--gamma", default=0., type=float,
     help="Bit flipping rate (default: %(default)s)"
@@ -50,6 +53,7 @@ parser.add_argument("--output-dir", default=".", dest="out_dir", help="Output fi
 args=parser.parse_args()
 
 lam=args.branching_factor #offspring number
+seed=args.seed
 gamma=args.gamma #mutation rate
 #bits in a pattern; must be adapted to ensure uniqueness of patterns
 N=args.string_len
@@ -66,10 +70,11 @@ args['job_dir']=os.getcwd() #store the location of the script for rerefence
 os.chdir(out_dir) #This way, we can simply write files without specified paths.
 
 
-def search_target(sample_number):
+def search_target(walker_instance):
     """Copy walker, get new strings and calculate mfpts."""
-    _,_,walker=make_tree(lam,N,gamma,overlap)
-    walker.set_weights()
+    walker=copy.deepcopy(walker_instance)
+    walker.set_target(np.random.choice(utils.leaves(walker.hierarchy_backup)))
+    walker.reset_patterns()
     while walker.x != walker.target_node:
         walker.step()
     return walker.t
@@ -90,18 +95,19 @@ print(args)
 print("Start:",start_time)
 
 
-#G,root,walker=make_tree(lam,N,gamma,overlap)
+make_tree=utils.seed_decorator(make_tree,0)
+G,root,walker=make_tree(lam,N,gamma,overlap)
 
-#args['sections']=walker.sections
-#args['target_node']=walker.target_node
-#args['mfpt']=utils.mfpt(walker,[(walker.root,walker.target_node)])
-#args['duplicate_patterns']=walker.num_pattern_duplicates()
+args['sections']=walker.sections
+args['target_node']=walker.target_node
+args['mfpt']=utils.mfpt(walker,[(walker.root,walker.target_node)])
+args['duplicate_patterns']=walker.num_pattern_duplicates()
 
 #Only need to do scheduling if we have more than one core.
 if num_cores>1:
     with mp.Pool(num_cores) as p:
         print('Enter multiprocessing.')
-        for times in p.map(search_target, range(number_of_samples)):
+        for times in p.map(search_target, [walker]*number_of_samples):
             fpts.append(times)
         print('Finished multiprocessing.')
 else:
