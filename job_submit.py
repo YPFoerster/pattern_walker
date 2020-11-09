@@ -23,7 +23,7 @@ project_dir=os.path.join(os.getcwd(),project_name)
 project_exists=mkdir_p(project_dir)
 if not project_exists:
     with open('.gitignore','a') as f:
-        f.writelines([project_dir,"/","\n"])
+        f.writelines([project_name,"/","\n"])
 
 #os.chdir(project_dir)
 job_directory = os.path.join(project_dir,".job")
