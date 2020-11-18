@@ -507,6 +507,49 @@ def mfpt(
             out[pair]=inv_nlap[target_ndx,target_ndx]/pi[target_ndx]-\
                 inv_nlap[start_ndx,target_ndx]/np.sqrt(pi[start_ndx]*pi[target_ndx])
 
+    if method=='Kirkland':
+        a,b=block_indices(G,G.target_node)
+        nodes=list(G.nodes())
+        alpha=[nodes.index(x) for x in a]
+        beta=[nodes.index(x) for x in b]
+        node_pair_inds={(node_1,node_2): (a.index(node_1), a.index(node_2)) for (node_1,node_2) in node_pairs }
+        W=nx.to_numpy_matrix(G,nodelist=a+b,weight=weight_str)
+        W_alpha=W[:len(a),:len(a)]
+        W_beta=W[-len(b):,-len(b):]
+        W_ab=W[:len(alpha),-len(b):]
+        W_ba=W[-len(b):,:len(a)]
+        u=np.linalg.inv(np.eye(len(G)-1)-W[1:,1:])
+        pi=np.concatenate(([[1]],-np.matmul(-W[0,1:],u).T))
+        pi=pi/np.sum(pi)
+        X=u[:len(a)-1,:len(a)-1]#np.linalg.inv(np.eye(len(a)-1)-W_alpha[1:,1:])
+        Y=u[-len(b):,-len(b):]
+        h=-W_alpha[0,1]*X[0,:]
+        H=np.matmul(np.ones((len(a)-1,1)),h)
+        delta=np.sum(W_alpha[0,:])*np.sum(np.linalg.matrix_power(X,2)[0,:])
+        beta=1+np.sum(W_alpha[0,:])*np.sum(X[0,:])
+        F=X-delta/beta*np.eye(len(a)-1)
+        y=np.sum(np.matmul(W_ab,Y))
+        Q=np.zeros((len(a),len(a))) #Q is the gerneralised group inverse of 1-P_alpha
+        Q[0,0]=delta/beta**2
+        Q[0,1:] = -W_alpha[0,1]*1/beta*np.array([ np.linalg.matrix_power(X,2)[0,j]-delta/beta*X[0,j] for j in range(len(X))])
+        Q[1:,0] = -1/beta*np.squeeze(np.sum(F, axis=1))
+        Q[1:,1:]=X+1/delta*(np.matmul(np.matmul(X,H),X) - np.matmul(np.matmul(F,H),F))
+        Qdg = np.diag(np.diag(Q))
+        gamma_alpha=1/np.sum(pi[:len(a)])
+        pi_alpha=pi[:len(a)]*gamma_alpha
+        pi_alpha=np.squeeze(np.array([x for x in pi_alpha]))
+        MQ = np.matmul(np.eye(len(a))-Q+np.matmul(np.ones((len(a),len(a))),Qdg),np.diag(1/pi_alpha))
+        V_alpha=np.zeros((len(a),len(a)))
+        FJ=np.matmul(F,np.ones((len(a)-1,len(a)-1)))
+        V_alpha[0,1:]=delta/beta**2+1/beta*FJ[:,0].T
+        V_alpha[1:,0]=-delta/beta**2-1/beta*np.squeeze(FJ[:,0])
+        V_alpha[1:,1:]=-1/beta*(FJ-FJ.T)
+        V_alpha*=y
+        M=gamma_alpha*MQ+V_alpha
+        for pair in node_pairs:
+            start=node_pair_inds[pair][0]
+            target=node_pair_inds[pair][1]
+            out[pair]=M[ start,target ]
 
     if method=='eig':
         # NOTE: Not fixed yet.
@@ -538,7 +581,7 @@ def mfpt(
         return out
 
 
-def block_indeces(G,node):
+def block_indices(G,node):
     """
     Return index lists for the block contain node and the relevant other block,
     determined based on the hierarchy_backup of G. The former block contains the
