@@ -48,6 +48,12 @@ def table_exists(db_cursor,name):
     query = "SELECT 1 FROM sqlite_master WHERE type='table' and name = ?"
     return db_cursor.execute(query, (name,)).fetchone() is not None
 
+def sort_df(df):
+    df.columns=np.round(df.columns,args.round)
+    df.index=np.round(df.index,args.round)
+    df=df.reindex(np.sort(df.index))
+    df=df.reindex(columns=np.sort(df.columns))
+    return df
 
 with sql.connect(args.database) as conn:
     if table_exists(conn,args.table_name):
@@ -100,11 +106,12 @@ with sql.connect(args.database) as conn:
                 stds[o][g]=np.std(temp)
                 print(N,',',o,',',g,',',mfpts[o][g],',',stds[o][g])
 
-        for df in [mfpts,stds]:
-            df.columns=np.round(df.columns,args.round)
-            df.index=np.round(df.index,args.round)
-            df=df.reindex(np.sort(df.index))
-            df=df.reindex(columns=np.sort(df.columns))
+        mfpts=sort_df(mfpts)
+        stds=sort_df(stds)
+        mfpts.columns.name='overlap'
+        mfpts.index.name='gamma'
+        stds.columns.name='overlap'
+        stds.index.name='gamma'
 
         print(mfpts)
         print(stds)
