@@ -434,7 +434,8 @@ def sections_by_overlap(pattern_len,num_sections,frac_overlap):
 def make_tree(lam,pattern_len,flip_rate,overlap):
     # TODO: The decorating bit can be done more elegantly.
     H,root=utils.poisson_ditree(lam)
-    G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap)
+    target=np.random.choice(utils.leaves(H))
+    G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap,search_for=target)
     G.set_weights()
     return H,root,G
 make_tree=utils.seed_decorator(make_tree,0)
