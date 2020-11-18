@@ -427,18 +427,24 @@ def mutate_pattern(pattern,gamma):
     return [ 1-x if np.random.random()<gamma else x for x in pattern ]
 
 def sections_by_overlap(pattern_len,num_sections,frac_overlap):
+    #TODO Test this
     overlap=int(frac_overlap*pattern_len)
     sections=[ ( i*(pattern_len-overlap),i*(pattern_len-overlap)+pattern_len ) for i in range(num_sections)]
     return sections
 
-def make_tree(lam,pattern_len,flip_rate,overlap):
-    # TODO: The decorating bit can be done more elegantly.
-    H,root=utils.poisson_ditree(lam)
-    target=np.random.choice(utils.leaves(H))
-    G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap,search_for=target)
-    G.set_weights()
-    return H,root,G
-make_tree=utils.seed_decorator(make_tree,0)
+def make_tree(lam,pattern_len,flip_rate,overlap,seed=None):
+    #TODO Test this
+    def maker():
+        H,root=utils.poisson_ditree(lam)
+        target=np.random.choice(utils.leaves(H))
+        G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap,search_for=target)
+        G.set_weights()
+        return H,root,G
+    if isinstance(seed,int):
+        print('Using seed {}'.format(seed))
+        maker=utils.seed_decorator(maker,seed)
+    return maker()
+
 
 if __name__=="__main__":
     import doctest
