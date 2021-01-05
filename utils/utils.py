@@ -46,6 +46,12 @@ rd.seed(0)
 uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 # --------------------------------------------
 
+__all__ = [
+    'random_dag', 'poisson_ditree', 'balanced_ditree', 'directify', 'sources',\
+    'leaves', 'uniform_ditree', 'list_degree_nodes', 'downward_current',\
+    'upward_current', 'path_direction_profile', 'largest_eigenvector',\
+    'normalised_laplacian', 'mfpt', 'block_indices', 'seed_decorator'
+    ]
 
 def random_dag(nodes, edges):
     """
@@ -112,7 +118,7 @@ def poisson_ditree(lam,n_max=100,n_min=3):
             current_gen=new_gen.copy()
     return G,root
 
-def balanced_directed_tree(r,h):
+def balanced_ditree(r,h):
     """
     Generate a perfectly balanced tree and return as nx.Digraph such that egdes
     point away from the root.
@@ -142,6 +148,29 @@ def balanced_directed_tree(r,h):
             root=node
             break
     return directify(G,root)
+
+def uniform_ditree(n,seed=None):
+    """
+    Draw uniform tree of size n and directify relative to random root.
+
+    n-- integer; number of nodes.
+    seed-- seed passed to np.random
+
+    return-- G,root
+
+    # NOTE: Bit of a convenience function; might be removed.
+
+    Example:
+    >>> G,_ = uniform_ditree(10,0)
+    >>> len(G)
+    10
+    >>> nx.is_arborescence(G)
+    True
+    """
+    G=nx.generators.random_tree(n,seed)
+    root = np.random.choice(list(G.nodes))
+    G,root=directify(G,root)
+    return G,root
 
 def directify(G,root):
     """
@@ -221,30 +250,6 @@ def leaves(G):
     False
     """
     return [node  for (node,od) in G.out_degree() if od==0]
-
-def uniform_ditree(n,seed=None):
-    """
-    Draw uniform tree of size n and directify relative to random root.
-
-    n-- integer; number of nodes.
-    seed-- seed passed to np.random
-
-    return-- G,root
-
-    # NOTE: Bit of a convenience function; might be removed.
-
-    Example:
-    >>> G,_ = uniform_ditree(10,0)
-    >>> len(G)
-    10
-    >>> nx.is_arborescence(G)
-    True
-    """
-    G=nx.generators.random_tree(n,seed)
-    root = np.random.choice(list(G.nodes))
-    G,root=directify(G,root)
-    return G,root
-
 
 def list_degree_nodes(G,deg,max_num=1):
     """
