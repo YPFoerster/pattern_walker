@@ -1,6 +1,6 @@
 """
 Utility functions to generate and modify certain classes of networkx Graphs and
-Digraphs.
+DiGraphs.
 
 random_dag-- Generate a random DAG with specified number of nodes and edges.
 poisson_ditree-- Generate directed rooted tree with Poissonian offspring.
@@ -588,7 +588,7 @@ def mfpt(
 
 def block_indices(G,node):
     """
-    Return index lists for the block contain node and the relevant other block,
+    Return index lists for the block containing node and the relevant other block,
     determined based on the hierarchy_backup of G. The former block contains the
     root index.
 

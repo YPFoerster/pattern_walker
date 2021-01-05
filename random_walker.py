@@ -11,7 +11,7 @@ count_pattern_duplicates-- Return number of duplicate patterns of a
 
 import numpy as np
 import networkx as nx
-import pattern_walker.utils
+import pattern_walker.utils as utils
 
 __all__ = [
     'walker', 'patternWalker', 'sectionedPatternWalker', 'SRPWalker', 'make_tree'
