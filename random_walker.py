@@ -432,10 +432,10 @@ def sections_by_overlap(pattern_len,num_sections,frac_overlap):
     sections=[ ( i*(pattern_len-overlap),i*(pattern_len-overlap)+pattern_len ) for i in range(num_sections)]
     return sections
 
-def make_tree(lam,pattern_len,flip_rate,overlap,seed=None):
+def make_tree(lam,pattern_len,flip_rate,overlap,n_max=100,seed=None):
     #TODO Test this
     def maker():
-        H,root=utils.poisson_ditree(lam)
+        H,root=utils.poisson_ditree(lam,n_max)
         target=np.random.choice(utils.leaves(H))
         G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap,search_for=target)
         G.set_weights()
