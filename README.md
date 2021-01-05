@@ -1,4 +1,4 @@
-# Asymmetric Random Walker
+# Pattern Walker
 
 Two modules, one providing two random walker classes derived from
 networkx.DiGraph and another with several utility functions, some for the
