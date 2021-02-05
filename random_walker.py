@@ -14,7 +14,8 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'sectionedPatternWalker', 'SRPWalker', 'make_tree'
+    'walker', 'patternWalker', 'sectionedPatternWalker', 'SRPWalker', 'make_tree',
+    'mutate_pattern'
     ]
 
 class walker(nx.DiGraph):
@@ -282,6 +283,41 @@ class patternWalker(walker):
             probs[key]/=denominator
         return children,parents,probs
 
+class fullProbPatternWalker(patternWalker):
+
+    def __init__(self,G,init_pos,pattern_len,expected_bit,flip_rate,root_flip_rate,metric=None,search_for=None):
+        self.expected_bit=expected_bit
+        self.root_flip_rate=root_flip_rate
+        super(fullProbPatternWalker,self).__init__(G,init_pos,full_pattern_len,flip_rate,metric,target)
+
+    def set_patterns(self):
+        """
+        Assigns a binary string to every node in the graph, successively by
+        generation/level. A pattern/string is generated based on its parent
+        string by the function mutate_pattern.
+        """
+        self.nodes[self.root]['pattern']=list(
+            np.random.choice([0,1],p=[1-self.expected_bit,self.expected_bit],
+            replace=True,size=self.pattern_len
+                                            ))
+        last_patterned_gen=[self.root]
+        queue=list(self.successors(self.root))
+
+        #Treat branch heads separately, due to different flip rate
+        for node in queue:
+            pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
+            self.nodes[node]['pattern']=mutate_pattern(
+                                        pattern,self.root_flip_rate,self.expected_bit
+                                            )
+        queue=[suc for node in queue for suc in self.successors(node)]
+
+        while len(queue)>0:
+            for node in queue:
+                pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
+                self.nodes[node]['pattern']=mutate_pattern(
+                                            pattern,self.flip_rate,self.expected_bit
+                                                )
+            queue=[suc for node in queue for suc in self.successors(node)]
 
 class sectionedPatternWalker(patternWalker):
     """
@@ -426,9 +462,26 @@ def hamming_dist(a,b):
     temp=[a[i]-b[i] for i in range(len(a))]
     return np.count_nonzero(temp)
 
-def mutate_pattern(pattern,gamma):
-    """Expect a binary string and flip every entry with probability gamma."""
-    return [ 1-x if np.random.random()<gamma else x for x in pattern ]
+def mutate_pattern(pattern,gamma,expected_bit=0.5):
+    """Expect a binary string and flip every entry with probability gamma,
+    modified by the marginal expectation of each bit."""
+    flip_prob=flip_probability_handle(gamma,expected_bit)
+    return [ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ]
+
+def flip_probability_handle(gamma,expected_bit):
+    """Returns probabilty function to flip a bit depending on its state and
+    marginal expectation."""
+    if expected_bit==0.5:
+        return lambda state: gamma
+    elif expected_bit==0:
+        return lambda state: 1
+    else:
+        def out_func(state):
+            if state:
+                return (1-expected_bit)/expected_bit*gamma
+            else:
+                return gamma
+        return out_func
 
 def sections_by_overlap(pattern_len,num_sections,frac_overlap):
     #TODO Test this
