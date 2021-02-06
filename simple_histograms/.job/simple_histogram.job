@@ -1,9 +1,0 @@
-#!/bin/bash -l
-#SBATCH --partition=nms_research
-#SBATCH --job-name=simple_histogram.job
-#SBATCH --output=/users/k1801311/asymmetric_random_walker/simple_histograms/.job/simple_histogram.out
-#SBATCH --error=/users/k1801311/asymmetric_random_walker/simple_histograms/.job/simple_histogram.err
-#SBATCH --time=0-00:02
-#SBATCH --mem=1200
-module load devtools/anaconda
-python simple_histogram.py             --branching-factor 3 --height 4 --gamma 0.3 --string-len 15            --num-samples 10000 --num-cores 4 --job-id $SLURM_JOB_ID             --job-name simple_histogram --output-dir /scratch/users/k1801311/patternWalker/simple_histograms/simple_histogram             
