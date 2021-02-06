@@ -14,7 +14,7 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'sectionedPatternWalker', 'SRPWalker', 'make_tree',
+    'walker', 'patternWalker', 'fullProbPatternWalker', 'sectionedPatternWalker', 'SRPWalker', 'make_tree',
     'mutate_pattern'
     ]
 
@@ -286,9 +286,16 @@ class patternWalker(walker):
 class fullProbPatternWalker(patternWalker):
 
     def __init__(self,G,init_pos,pattern_len,expected_bit,flip_rate,root_flip_rate,metric=None,search_for=None):
+        target=None
+        if search_for is None:
+            #In case a seed is fixed, this needs to be done first, otherwise
+            #otherwise the target changes with the overlap.
+            target=np.random.choice(utils.leaves(G))
+        elif search_for in G.nodes:
+            target=search_for
         self.expected_bit=expected_bit
         self.root_flip_rate=root_flip_rate
-        super(fullProbPatternWalker,self).__init__(G,init_pos,full_pattern_len,flip_rate,metric,target)
+        super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
 
     def set_patterns(self):
         """
