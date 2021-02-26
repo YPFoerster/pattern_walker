@@ -479,7 +479,7 @@ class SRPWalker(sectionedPatternWalker):
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b (truncates at len(a))."""
-    return np.linarg.norm(a-b,ord=1)
+    return np.linalg.norm(a-b,ord=1)
 
 def mutate_pattern(pattern,gamma,root_prior=0.5,child_prior=None):
     """Expect a binary string and flip every entry with probability gamma,
