@@ -142,11 +142,15 @@ def balanced_ditree(r,h):
     """
     G=nx.generators.balanced_tree(r,h)
     root=None
+    labels={}
     #root is the inly node in G with degree r, all others have degree r+1.
     for node in G.nodes():
+        labels[node]=generate_unique_node()
         if nx.degree(G,node)==r:
             root=node
             break
+    nx.relabel_nodes(G,labels,copy=False)
+    root=labels[root]
     return directify(G,root)
 
 def uniform_ditree(n,seed=None):
