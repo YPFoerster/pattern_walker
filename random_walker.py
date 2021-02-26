@@ -247,13 +247,8 @@ class patternWalker(walker):
         """Count all strings that appear more than once."""
         patterns = list(nx.get_node_attributes(self,'pattern').values())
         duplicates = []
-        uniques = []
-        for x in patterns:
-            if x not in uniques:
-                uniques.append(x)
-            else:
-                duplicates.append(x)
-        return len(duplicates)
+        uniques = set([ pattern.tostring() for pattern in patterns ] )
+        return len(patterns)-len(uniques)
 
     def get_probs(self,site):
         """
