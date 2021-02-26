@@ -285,7 +285,7 @@ class patternWalker(walker):
 
 class fullProbPatternWalker(patternWalker):
 
-    def __init__(self,G,init_pos,pattern_len,expected_bit,flip_rate,root_flip_rate,metric=None,search_for=None):
+    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,search_for=None):
         target=None
         if search_for is None:
             #In case a seed is fixed, this needs to be done first, otherwise
@@ -293,9 +293,15 @@ class fullProbPatternWalker(patternWalker):
             target=np.random.choice(utils.leaves(G))
         elif search_for in G.nodes:
             target=search_for
-        self.expected_bit=expected_bit
+        self.root_prior=root_prior
+        self.high_child_prior=high_child_prior
+        self.low_child_prior=low_child_prior
+        self.overlap=overlap
         self.root_flip_rate=root_flip_rate
+        self.num_sections=len(list(G.successors(init_pos)))
+        self.sec_size=int(pattern_len/self.num_sections)
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
+
 
     def set_patterns(self):
         """
@@ -303,26 +309,33 @@ class fullProbPatternWalker(patternWalker):
         generation/level. A pattern/string is generated based on its parent
         string by the function mutate_pattern.
         """
-        self.nodes[self.root]['pattern']=list(
-            np.random.choice([0,1],p=[1-self.expected_bit,self.expected_bit],
+        self.nodes[self.root]['pattern']=np.random.choice([0,1],p=[1-self.root_prior,self.root_prior],
             replace=True,size=self.pattern_len
-                                            ))
+                                            )
         last_patterned_gen=[self.root]
         queue=list(self.successors(self.root))
 
         #Treat branch heads separately, due to different flip rate
-        for node in queue:
-            pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
-            self.nodes[node]['pattern']=mutate_pattern(
-                                        pattern,self.root_flip_rate,self.expected_bit
+        for node_idx in range(self.num_sections):
+            node=queue[node_idx]
+            in_sec = np.array(range(max(0,node_idx*self.sec_size-self.overlap),min(self.pattern_len,(node_idx+1)*self.sec_size+self.overlap)))
+            out_sec = np.array([x for x in range(self.pattern_len) if not x in in_sec])
+            pattern=self.nodes[self.root]['pattern'].copy()
+            pattern[in_sec]=mutate_pattern(
+                                        pattern[in_sec],self.root_flip_rate,self.root_prior,self.high_child_prior
                                             )
+            pattern[out_sec]=mutate_pattern(
+                                        pattern[out_sec],self.root_flip_rate,self.root_prior,self.low_child_prior
+                                            )
+            self.nodes[node]['pattern']=pattern
+
         queue=[suc for node in queue for suc in self.successors(node)]
 
         while len(queue)>0:
             for node in queue:
                 pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
                 self.nodes[node]['pattern']=mutate_pattern(
-                                            pattern,self.flip_rate,self.expected_bit
+                                            pattern,self.flip_rate,self.root_prior
                                                 )
             queue=[suc for node in queue for suc in self.successors(node)]
 
@@ -466,26 +479,28 @@ class SRPWalker(sectionedPatternWalker):
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b (truncates at len(a))."""
-    temp=[a[i]-b[i] for i in range(len(a))]
-    return np.count_nonzero(temp)
+    return np.linarg.norm(a-b,ord=1)
 
-def mutate_pattern(pattern,gamma,expected_bit=0.5):
+def mutate_pattern(pattern,gamma,root_prior=0.5,child_prior=None):
     """Expect a binary string and flip every entry with probability gamma,
     modified by the marginal expectation of each bit."""
-    flip_prob=flip_probability_handle(gamma,expected_bit)
-    return [ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ]
+    if child_prior is None:
+        child_prior=root_prior
+    flip_prob=flip_probability_handle(gamma,root_prior,child_prior)
+    pattern=list(pattern)
+    return np.array([ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ])
 
-def flip_probability_handle(gamma,expected_bit):
+def flip_probability_handle(gamma,root_prior,child_prior):
     """Returns probabilty function to flip a bit depending on its state and
-    marginal expectation."""
-    if expected_bit==0.5:
+    marginal expectations of parent and child."""
+    # if root_prior==0.5:
+    #     return lambda state: gamma
+    if root_prior==0:
         return lambda state: gamma
-    elif expected_bit==0:
-        return lambda state: 1
     else:
         def out_func(state):
             if state:
-                return (1-expected_bit)/expected_bit*gamma
+                return (root_prior-child_prior+(1-root_prior)*gamma)/root_prior
             else:
                 return gamma
         return out_func
