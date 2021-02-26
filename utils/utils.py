@@ -142,13 +142,12 @@ def balanced_ditree(r,h):
     """
     G=nx.generators.balanced_tree(r,h)
     root=None
-    labels={}
-    #root is the inly node in G with degree r, all others have degree r+1.
+    #root is the only node in G with degree r, all others have degree r+1.
     for node in G.nodes():
-        labels[node]=generate_unique_node()
         if nx.degree(G,node)==r:
             root=node
             break
+    labels={node:generate_unique_node() for node in G.nodes()}
     nx.relabel_nodes(G,labels,copy=False)
     root=labels[root]
     return directify(G,root)
