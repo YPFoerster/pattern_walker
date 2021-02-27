@@ -240,6 +240,7 @@ class patternWalker(walker):
         introduces edges blurring the hierarchy on that set_patterns relies.
         """
         self.clear()
+        self.add_nodes_from(self.hierarchy_backup.nodes(data=True))
         self.add_edges_from(self.hierarchy_backup.edges())
         self.set_patterns()
         self.set_weights()
