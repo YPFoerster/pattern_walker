@@ -347,10 +347,10 @@ class fullProbPatternWalker(patternWalker):
                 pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'].copy()
 
                 pattern[in_sec]=mutate_pattern(
-                                            pattern[in_sec],self.root_flip_rate,self.high_child_prior,self.high_child_prior
+                                            pattern[in_sec],self.flip_rate,self.high_child_prior,self.high_child_prior
                                                 )
                 pattern[out_sec]=mutate_pattern(
-                                            pattern[out_sec],self.root_flip_rate,self.low_child_prior,self.low_child_prior
+                                            pattern[out_sec],self.flip_rate,self.low_child_prior,self.low_child_prior
                                                 )
                 self.nodes[node]['pattern']=pattern
             queue=[suc for node in queue for suc in self.successors(node)]
