@@ -60,6 +60,7 @@ class walker(nx.DiGraph):
     def __init__(self,G,init_pos,bias):
         """Initialise Digraph as G and instantiate class variables."""
         super(walker, self).__init__()
+        self.add_nodes_from(G.nodes(data=True))
         self.add_edges_from(G.edges())
         self.bias=bias
         self.trace=[init_pos]
@@ -293,10 +294,21 @@ class fullProbPatternWalker(patternWalker):
         self.low_child_prior=low_child_prior
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
-        self.num_sections=len(list(G.successors(init_pos)))
+        self.num_sections=self.set_section_numbers(G,init_pos)
+        print(self.num_sections)
         self.sec_size=int(pattern_len/self.num_sections)
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
+        print(self.num_sections)
 
+    def set_section_numbers(self,G,init_pos):
+        section_heads=G.successors(init_pos)
+        sec_counter=0
+        for head in section_heads:
+            G.nodes[head]['section']=sec_counter
+            for descendant in nx.descendants(G,head):
+                G.nodes[descendant]['section']=sec_counter
+            sec_counter+=1
+        return sec_counter
 
     def set_patterns(self):
         """
@@ -311,9 +323,9 @@ class fullProbPatternWalker(patternWalker):
         queue=list(self.successors(self.root))
 
         #Treat branch heads separately, due to different flip rate
-        for node_idx in range(self.num_sections):
-            node=queue[node_idx]
-            in_sec = np.array(range(max(0,node_idx*self.sec_size-self.overlap),min(self.pattern_len,(node_idx+1)*self.sec_size+self.overlap)))
+        for head in queue:
+            sec_ndx=self.nodes[head]['section']
+            in_sec = np.array(range(max(0,sec_ndx*self.sec_size-self.overlap),min(self.pattern_len,(sec_ndx+1)*self.sec_size+self.overlap)))
             out_sec = np.array([x for x in range(self.pattern_len) if not x in in_sec])
             pattern=self.nodes[self.root]['pattern'].copy()
             pattern[in_sec]=mutate_pattern(
@@ -322,16 +334,24 @@ class fullProbPatternWalker(patternWalker):
             pattern[out_sec]=mutate_pattern(
                                         pattern[out_sec],self.root_flip_rate,self.root_prior,self.low_child_prior
                                             )
-            self.nodes[node]['pattern']=pattern
+            self.nodes[head]['pattern']=pattern
 
         queue=[suc for node in queue for suc in self.successors(node)]
 
         while len(queue)>0:
             for node in queue:
-                pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
-                self.nodes[node]['pattern']=mutate_pattern(
-                                            pattern,self.flip_rate,self.root_prior
+                sec_ndx=self.nodes[node]['section']
+                in_sec = np.array(range(max(0,sec_ndx*self.sec_size-self.overlap),min(self.pattern_len,(sec_ndx+1)*self.sec_size+self.overlap)))
+                out_sec = np.array([x for x in range(self.pattern_len) if not x in in_sec])
+                pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'].copy()
+
+                pattern[in_sec]=mutate_pattern(
+                                            pattern[in_sec],self.root_flip_rate,self.high_child_prior,self.high_child_prior
                                                 )
+                pattern[out_sec]=mutate_pattern(
+                                            pattern[out_sec],self.root_flip_rate,self.low_child_prior,self.low_child_prior
+                                                )
+                self.nodes[node]['pattern']=pattern
             queue=[suc for node in queue for suc in self.successors(node)]
 
 class sectionedPatternWalker(patternWalker):
