@@ -298,7 +298,7 @@ class fullProbPatternWalker(patternWalker):
         self.num_sections=self.set_section_numbers(G,init_pos)
         self.sec_size=int(pattern_len/self.num_sections)
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
-        
+
     def set_section_numbers(self,G,init_pos):
         section_heads=G.successors(init_pos)
         sec_counter=0
@@ -330,9 +330,10 @@ class fullProbPatternWalker(patternWalker):
             pattern[in_sec]=mutate_pattern(
                                         pattern[in_sec],self.root_flip_rate,self.root_prior,self.high_child_prior
                                             )
-            pattern[out_sec]=mutate_pattern(
-                                        pattern[out_sec],self.root_flip_rate,self.root_prior,self.low_child_prior
-                                            )
+            if len(out_sec):
+                pattern[out_sec]=mutate_pattern(
+                                            pattern[out_sec],self.root_flip_rate,self.root_prior,self.low_child_prior
+                                                )
             self.nodes[head]['pattern']=pattern
 
         queue=[suc for node in queue for suc in self.successors(node)]
@@ -347,9 +348,10 @@ class fullProbPatternWalker(patternWalker):
                 pattern[in_sec]=mutate_pattern(
                                             pattern[in_sec],self.flip_rate,self.high_child_prior,self.high_child_prior
                                                 )
-                pattern[out_sec]=mutate_pattern(
-                                            pattern[out_sec],self.flip_rate,self.low_child_prior,self.low_child_prior
-                                                )
+                if len(out_sec):
+                    pattern[out_sec]=mutate_pattern(
+                                                pattern[out_sec],self.flip_rate,self.low_child_prior,self.low_child_prior
+                                                    )
                 self.nodes[node]['pattern']=pattern
             queue=[suc for node in queue for suc in self.successors(node)]
 
