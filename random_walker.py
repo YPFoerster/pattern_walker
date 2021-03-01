@@ -296,11 +296,9 @@ class fullProbPatternWalker(patternWalker):
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
         self.num_sections=self.set_section_numbers(G,init_pos)
-        print(self.num_sections)
         self.sec_size=int(pattern_len/self.num_sections)
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
-        print(self.num_sections)
-
+        
     def set_section_numbers(self,G,init_pos):
         section_heads=G.successors(init_pos)
         sec_counter=0
