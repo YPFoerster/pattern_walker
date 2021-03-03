@@ -295,19 +295,23 @@ class fullProbPatternWalker(patternWalker):
         self.low_child_prior=low_child_prior
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
-        self.num_sections=self.set_section_numbers(G,init_pos)
+        self.num_sections=self.set_position_numbers(G,init_pos)
         self.sec_size=int(pattern_len/self.num_sections)
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
 
-    def set_section_numbers(self,G,init_pos):
+    def set_position_numbers(self,G,init_pos):
+        G.nodes[init_pos]['section']=0 #descendant from which child of root?
+        G.nodes[init_pos]['depth']=0 #distance from root
         section_heads=G.successors(init_pos)
-        sec_counter=0
+        sec_counter=1
         for head in section_heads:
             G.nodes[head]['section']=sec_counter
+            G.nodes[head]['depth']=1
             for descendant in nx.descendants(G,head):
                 G.nodes[descendant]['section']=sec_counter
+                G.nodes[descendant]['depth']=nx.shortest_path_length(G,init_pos,descendant)
             sec_counter+=1
-        return sec_counter
+        return sec_counter-1
 
     def set_patterns(self):
         """
@@ -324,7 +328,7 @@ class fullProbPatternWalker(patternWalker):
         #Treat branch heads separately, due to different flip rate
         for head in queue:
             sec_ndx=self.nodes[head]['section']
-            in_sec = np.array(range(max(0,sec_ndx*self.sec_size-self.overlap),min(self.pattern_len,(sec_ndx+1)*self.sec_size+self.overlap)))
+            in_sec = np.array(range(max(0,(sec_ndx-1)*self.sec_size-self.overlap),min(self.pattern_len,sec_ndx*self.sec_size+self.overlap)))
             out_sec = np.array([x for x in range(self.pattern_len) if not x in in_sec])
             pattern=self.nodes[self.root]['pattern'].copy()
             pattern[in_sec]=mutate_pattern(
@@ -341,7 +345,7 @@ class fullProbPatternWalker(patternWalker):
         while len(queue)>0:
             for node in queue:
                 sec_ndx=self.nodes[node]['section']
-                in_sec = np.array(range(max(0,sec_ndx*self.sec_size-self.overlap),min(self.pattern_len,(sec_ndx+1)*self.sec_size+self.overlap)))
+                in_sec = np.array(range(max(0,(sec_ndx-1)*self.sec_size-self.overlap),min(self.pattern_len,sec_ndx*self.sec_size+self.overlap)))
                 out_sec = np.array([x for x in range(self.pattern_len) if not x in in_sec])
                 pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'].copy()
 
