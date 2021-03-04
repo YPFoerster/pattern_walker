@@ -50,7 +50,7 @@ __all__ = [
     'random_dag', 'poisson_ditree', 'balanced_ditree', 'directify', 'sources',\
     'leaves', 'uniform_ditree', 'list_degree_nodes', 'downward_current',\
     'upward_current', 'path_direction_profile', 'largest_eigenvector',\
-    'normalised_laplacian', 'mfpt', 'block_indices', 'seed_decorator'
+    'normalised_laplacian', 'mfpt', 'block_indices', 'filter_nodes', 'seed_decorator'
     ]
 
 def random_dag(nodes, edges):
@@ -604,6 +604,9 @@ def block_indices(G,node):
     alpha=list([G.root]+branch)
     beta=list(set(G.nodes)-set(alpha))
     return alpha, beta
+
+def filter_nodes(G,attrstr,value):
+    return [node for node,attrdict in G.nodes.items() if attrdict[attrstr]==value]
 
 def above(G,x):
     return len(nx.ancestors(G,x))
