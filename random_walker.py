@@ -139,7 +139,7 @@ class patternWalker(walker):
 
     Extending variables:
 
-    pattern_len-- Lenght of binary strings assined to all nodes.
+    pattern_len-- Length of binary strings assined to all nodes.
 
     flip_rate-- Probability to change any string bit from one node to its child.
 
