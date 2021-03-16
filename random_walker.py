@@ -347,9 +347,9 @@ class fullProbPatternWalker(patternWalker):
             for node in queue:
                 sec_ndx=self.nodes[node]['section']
                 left_sec_bound=sec_ndx*self.sec_size-self.overlap
-                in_sec = np.array(range(self.sec_size+2*self.overlap))
+                in_sec = np.array(range(min(self.sec_size+2*self.overlap,self.pattern_len)))
                 out_sec = np.array(range(self.sec_size,self.pattern_len))
-                pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],left_sec_bound)
+                pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_sec_bound)
 
                 pattern[in_sec]=mutate_pattern(
                                             pattern[in_sec],self.flip_rate,self.high_child_prior,self.high_child_prior
@@ -358,7 +358,7 @@ class fullProbPatternWalker(patternWalker):
                     pattern[out_sec]=mutate_pattern(
                                                 pattern[out_sec],self.flip_rate,self.low_child_prior,self.low_child_prior
                                                     )
-                self.nodes[node]['pattern']=np.roll(pattern,-left_sec_bound)
+                self.nodes[node]['pattern']=np.roll(pattern,left_sec_bound)
             queue=[suc for node in queue for suc in self.successors(node)]
 
 class sectionedPatternWalker(patternWalker):
