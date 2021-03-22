@@ -329,8 +329,8 @@ class fullProbPatternWalker(patternWalker):
         for head in queue:
             sec_ndx=self.nodes[head]['section']
             left_sec_bound=(sec_ndx-1)*self.sec_size-self.overlap
-            in_sec = np.array(range(min(self.sec_size+2*self.overlap,self.pattern_len)))
-            out_sec = np.array(range(self.sec_size+2*self.overlap,self.pattern_len))
+            in_sec = np.array(range(0,min(self.sec_size+2*self.overlap,self.pattern_len)))
+            out_sec = np.array(range(len(in_sec),self.pattern_len))
             pattern=np.roll(self.nodes[self.root]['pattern'],-left_sec_bound)
             pattern[in_sec]=mutate_pattern(
                                         pattern[in_sec],self.root_flip_rate,self.root_prior,self.high_child_prior
@@ -346,11 +346,10 @@ class fullProbPatternWalker(patternWalker):
         while len(queue)>0:
             for node in queue:
                 sec_ndx=self.nodes[node]['section']
-                left_sec_bound=sec_ndx*self.sec_size-self.overlap
-                in_sec = np.array(range(min(self.sec_size+2*self.overlap,self.pattern_len)))
-                out_sec = np.array(range(self.sec_size,self.pattern_len))
+                left_sec_bound=(sec_ndx-1)*self.sec_size-self.overlap
+                in_sec = np.array(range(0,min(self.sec_size+2*self.overlap,self.pattern_len)))
+                out_sec = np.array(range(len(in_sec),self.pattern_len))
                 pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_sec_bound)
-
                 pattern[in_sec]=mutate_pattern(
                                             pattern[in_sec],self.flip_rate,self.high_child_prior,self.high_child_prior
                                                 )
