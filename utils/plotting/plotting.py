@@ -1,0 +1,18 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from networkx.drawing.nx_agraph import graphviz_layout
+
+__all__ = [
+    'plot_tree'
+    ]
+
+def plot_tree(G):
+    pos=graphviz_layout(G.hierarchy_backup,prog='dot') #positions to display tree "nicely"
+    (edges,weights) = zip(*nx.get_edge_attributes(G,'weight').items())
+    fig_handle=plt.figure(figsize=(40,20))
+    nx.draw(G, pos, edgelist=edges, edge_color=weights, node_size=5000,arrowsize=100,width=5.0, edge_cmap=plt.cm.Blues)
+    nx.draw_networkx_nodes(G,pos,nodelist=[G.root],node_color='r',node_size=5000.)
+    #Mark target node in green.
+    nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='g',node_size=5000)
+    return fig_handle
