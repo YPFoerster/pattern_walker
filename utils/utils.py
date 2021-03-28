@@ -50,7 +50,8 @@ __all__ = [
     'random_dag', 'poisson_ditree', 'balanced_ditree', 'directify', 'sources',\
     'leaves', 'uniform_ditree', 'list_degree_nodes', 'downward_current',\
     'upward_current', 'path_direction_profile', 'largest_eigenvector',\
-    'normalised_laplacian', 'mfpt', 'block_indices', 'filter_nodes', 'seed_decorator'
+    'normalised_laplacian', 'mfpt', 'block_indices', 'filter_nodes', 'seed_decorator',\
+    'spanning_tree_with_root','tree_weight'
     ]
 
 def random_dag(nodes, edges):
@@ -217,6 +218,22 @@ def directify(G,root):
         else:
             out.add_edge(edge[1],edge[0])
     return out,root
+
+def spanning_tree_with_root(G,root,edge_direction='up'):
+    out=directify(G,root)
+    if edge_direction=='up':
+        return nx.reverse(out[0])
+    elif edge_direction=='down':
+        return out[0]
+    else:
+        return None
+def tree_weight(G,root,edge_direction='up'):
+    tree=spanning_tree_with_root(G,root,edge_direction)
+    temp=1
+    for (u,v) in tree.edges:
+        temp*=G.get_edge_data(u,v)['weight']
+    return temp
+
 
 def sources(G):
     """
