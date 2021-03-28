@@ -221,9 +221,9 @@ class patternWalker(walker):
         generation/level. A pattern/string is generated based on its parent
         string by the function mutate_pattern.
         """
-        self.nodes[self.root]['pattern']=list(np.random.randint(
+        self.nodes[self.root]['pattern']=np.random.randint(
                                                         0,2,self.pattern_len
-                                                        ))
+                                                        )
         last_patterned_gen=[self.root]
         queue=list(self.successors(self.root))
         while len(queue)>0:
