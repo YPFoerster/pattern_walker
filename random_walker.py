@@ -243,6 +243,7 @@ class patternWalker(walker):
         self.add_nodes_from(self.hierarchy_backup.nodes(data=True))
         self.add_edges_from(self.hierarchy_backup.edges())
         self.set_patterns()
+        self.set_target(self.target_node)
         self.set_weights()
 
     def num_pattern_duplicates(self):
@@ -494,6 +495,7 @@ class SRPWalker(sectionedPatternWalker):
         self.clear()
         self.add_edges_from(self.hierarchy_backup.edges())
         self.set_patterns()
+        self.set_target(self.target_node)
         self.add_edges_from(self.references)
         self.set_weights()
 
