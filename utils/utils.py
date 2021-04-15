@@ -52,7 +52,7 @@ __all__ = [
     'leaves', 'uniform_ditree', 'list_degree_nodes', 'downward_current',\
     'upward_current', 'path_direction_profile', 'largest_eigenvector',\
     'normalised_laplacian', 'mfpt', 'block_indices', 'filter_nodes', 'seed_decorator',\
-    'spanning_tree_with_root','tree_weight','path_mfpts'
+    'spanning_tree_with_root','tree_weight','tree_mfpts'
     ]
 
 def random_dag(nodes, edges):
@@ -607,7 +607,7 @@ def mfpt(
         return out
 
 def tree_mfpts(tree,start,target):
-    #Find MFPT based on tree weights. Tree has to be an arborescence. 
+    #Find MFPT based on tree weights. Tree has to be an arborescence.
     sigma_target=tree_weight(tree,target)
     shortest_path = nx.shortest_path(tree,start,target)
     sigma_start_target=0
