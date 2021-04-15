@@ -501,29 +501,29 @@ class SRPWalker(sectionedPatternWalker):
 
 
 def hamming_dist(a,b):
-    """Return number of non-equal entries of a and b (truncates at len(a))."""
+    """Return number of non-equal entries of a and b."""
     return np.linalg.norm(a-b,ord=1)
 
-def mutate_pattern(pattern,gamma,root_prior=0.5,child_prior=None):
+def mutate_pattern(pattern,gamma,parent_prior=0.5,child_prior=None):
     """Expect a binary string and flip every entry with probability gamma,
     modified by the marginal expectation of each bit."""
     if child_prior is None:
-        child_prior=root_prior
-    flip_prob=flip_probability_handle(gamma,root_prior,child_prior)
+        child_prior=parent_prior
+    flip_prob=flip_probability_handle(gamma,parent_prior,child_prior)
     pattern=list(pattern)
     return np.array([ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ])
 
-def flip_probability_handle(gamma,root_prior,child_prior):
+def flip_probability_handle(gamma,parent_prior,child_prior):
     """Returns probabilty function to flip a bit depending on its state and
     marginal expectations of parent and child."""
     # if root_prior==0.5:
     #     return lambda state: gamma
-    if root_prior==0:
+    if parent_prior==0:
         return lambda state: gamma
     else:
         def out_func(state):
             if state:
-                return (root_prior-child_prior+(1-root_prior)*gamma)/root_prior
+                return 1-(child_prior-(1-parent_prior)*gamma)/parent_prior
             else:
                 return gamma
         return out_func
