@@ -29,6 +29,7 @@ r-- h/w
 import networkx as nx
 
 import numpy as np
+from copy import deepcopy
 import timeit
 from functools import wraps
 #Monkey patched uuid.uuid4 to create reproducible unique nodes comparable to networkx.utils.generate_unique_node
@@ -51,7 +52,7 @@ __all__ = [
     'leaves', 'uniform_ditree', 'list_degree_nodes', 'downward_current',\
     'upward_current', 'path_direction_profile', 'largest_eigenvector',\
     'normalised_laplacian', 'mfpt', 'block_indices', 'filter_nodes', 'seed_decorator',\
-    'spanning_tree_with_root','tree_weight'
+    'spanning_tree_with_root','tree_weight','path_mfpts'
     ]
 
 def random_dag(nodes, edges):
@@ -605,6 +606,29 @@ def mfpt(
     else:
         return out
 
+def tree_mfpts(tree,start,target):
+    #Find MFPT based on tree weights. Tree has to be an arborescence. 
+    sigma_target=tree_weight(tree,target)
+    shortest_path = nx.shortest_path(tree,start,target)
+    sigma_start_target=0
+
+    for cut_node_ndx in range(len(shortest_path)-1):
+        temp_sigma=1
+        G_cut=deepcopy(tree)
+        G_cut.remove_edge(shortest_path[cut_node_ndx],shortest_path[cut_node_ndx+1])
+        G_cut.remove_edge(shortest_path[cut_node_ndx+1],shortest_path[cut_node_ndx])
+        comps=nx.weakly_connected_components(G_cut)
+        start_comp=deepcopy(G_cut)
+        target_comp=deepcopy(G_cut)
+        for comp in comps:
+            if not (start in comp):
+                start_comp.remove_nodes_from(comp)
+            elif not (target in comp):
+                target_comp.remove_nodes_from(comp)
+        temp_sigma*=tree_weight(target_comp,target)
+        temp_sigma*=np.sum([tree_weight(start_comp,node) for node in start_comp])
+        sigma_start_target+=temp_sigma
+    return sigma_start_target/sigma_target
 
 def block_indices(G,node):
     """
