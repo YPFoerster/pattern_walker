@@ -632,37 +632,23 @@ def tree_mfpts(tree,start,target):
 
 def block_indices(G,node):
     """
-    Return index lists for the block containing node and the relevant other block,
+    Return NODE lists for the block containing node and the relevant other block,
     determined based on the hierarchy_backup of G. The former block contains the
-    root index.
+    root.
+    ## TODO: Change name, because we don't return indices. Go through importing scripts and correct usage.
 
     G: rw.patternWalker
     node: node in G other than G.root
     """
-    temp=list(set(nx.ancestors(G.hierarchy_backup,node))-set([G.root]))
-    branch=[x for x in temp if x in G.hierarchy_backup.successors(G.root) ]
-    branch=branch+list(nx.descendants(G.hierarchy_backup,branch[0]))
-    alpha=list([G.root]+branch)
-    beta=list(set(G.nodes)-set(alpha))
+    temp=list(set(nx.ancestors(G.hierarchy_backup,node))-set([G.root]))#everything upstream of node (we have to remove the root)
+    branch=[x for x in temp if x in G.hierarchy_backup.successors(G.root) ]#those nodes upstream of node that are direct children of G.root
+    branch=branch+list(nx.descendants(G.hierarchy_backup,branch[0]))#everything downstream of those nodes we have just found (if we hadn't removed the root two lines above, this would be everthing)
+    alpha=list([G.root]+branch)#add the root again
+    beta=list(set(G.nodes)-set(alpha))#the complement of alpha
     return alpha, beta
 
 def filter_nodes(G,attrstr,value):
     return [node for node,attrdict in G.nodes.items() if attrdict[attrstr]==value]
-
-def above(G,x):
-    return len(nx.ancestors(G,x))
-
-def below(G,x):
-    return len(nx.descendants(G,x))
-
-def h(G,x):
-    return below(G,x)-above(G,x)
-
-def w(G,x):
-    return below(G,x)+above(G,x)
-
-def r(G,x):
-    return h(G,x)/w(G,x)
 
 
 def timer_decorator(func,args,kwargs):
