@@ -52,7 +52,7 @@ __all__ = [
     'leaves', 'uniform_ditree', 'list_degree_nodes', 'downward_current',\
     'upward_current', 'path_direction_profile', 'largest_eigenvector',\
     'normalised_laplacian', 'mfpt', 'block_indices', 'filter_nodes', 'seed_decorator',\
-    'spanning_tree_with_root','tree_weight','tree_mfpts'
+    'spanning_tree_with_root','tree_weight','tree_mfpts', 'cluster_by_branch'
     ]
 
 def random_dag(nodes, edges):
@@ -539,18 +539,18 @@ def mfpt(
         alpha=[nodes.index(x) for x in a]
         beta=[nodes.index(x) for x in b]
         node_pair_inds={(node_1,node_2): (a.index(node_1), a.index(node_2)) for (node_1,node_2) in node_pairs }
-        W=nx.to_numpy_matrix(G,nodelist=a+b,weight=weight_str)
+        W=nx.to_numpy_array(G,nodelist=a+b,weight=weight_str)
         W_alpha=W[:len(a),:len(a)]
         W_beta=W[-len(b):,-len(b):]
         W_ab=W[:len(alpha),-len(b):]
         W_ba=W[-len(b):,:len(a)]
         u=np.linalg.inv(np.eye(len(G)-1)-W[1:,1:])
-        pi=np.concatenate(([[1]],-np.matmul(-W[0,1:],u).T))
+        pi=np.concatenate(([1],-np.matmul(-W[0,1:],u).T))
         pi=pi/np.sum(pi)
         X=u[:len(a)-1,:len(a)-1]#np.linalg.inv(np.eye(len(a)-1)-W_alpha[1:,1:])
         Y=u[-len(b):,-len(b):]
         h=-W_alpha[0,1]*X[0,:]
-        H=np.matmul(np.ones((len(a)-1,1)),h)
+        H=np.matmul(np.ones((len(a)-1,1)),np.expand_dims(h,axis=1).T)
         delta=np.sum(W_alpha[0,:])*np.sum(np.linalg.matrix_power(X,2)[0,:])
         beta=1+np.sum(W_alpha[0,:])*np.sum(X[0,:])
         F=X-delta/beta*np.eye(len(a)-1)
@@ -646,6 +646,24 @@ def block_indices(G,node):
     alpha=list([G.root]+branch)#add the root again
     beta=list(set(G.nodes)-set(alpha))#the complement of alpha
     return alpha, beta
+
+def cluster_by_branch(G):
+    """
+    Returns a list of nodes for every node on the shortest path between G.root
+    and G.target_node such that the list for each node contains all descendants
+    of the node NOT following the shortest path to the target. """
+    path = nx.shortest_path(G,G.root, G.target_node)
+    path_edges={path[i]:[(path[i],path[i+1]),(path[i+1],path[i])] for i in range(len(path)-1)}
+    H=deepcopy(G.hierarchy_backup)
+    clusters={}
+    for node in path:
+        try:
+            H.remove_edges_from(path_edges[node])
+            clusters[node]=list(nx.descendants(H,node))+[node]
+        except KeyError:
+            if node==G.target_node:
+                clusters[node]=[node]
+    return clusters
 
 def filter_nodes(G,attrstr,value):
     return [node for node,attrdict in G.nodes.items() if attrdict[attrstr]==value]
