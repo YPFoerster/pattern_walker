@@ -16,4 +16,4 @@ def plot_tree(G,partition=[]):
     nx.draw_networkx_nodes(G,pos,nodelist=[G.root],node_color='r',node_size=3000.) #root in red
     nx.draw_networkx_nodes(G,pos,nodelist=[G.target_node],node_color='g',node_size=3000) #target in green
 
-    return fig_handle
+    return fig_handle,pos
