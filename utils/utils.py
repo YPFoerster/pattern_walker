@@ -659,10 +659,10 @@ def cluster_by_branch(G):
     for node in path:
         try:
             H.remove_edges_from(path_edges[node])
-            clusters[node]=list(nx.descendants(H,node))+[node]
+            clusters[node]={'cluster':list(nx.descendants(H,node))+[node]}
         except KeyError:
             if node==G.target_node:
-                clusters[node]=[node]
+                clusters[node]={'cluster':[node]}
     return clusters
 
 def filter_nodes(G,attrstr,value):
