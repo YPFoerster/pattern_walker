@@ -577,6 +577,12 @@ def mfpt(
             target=node_pair_inds[pair][1]
             out[pair]=M[ start,target ]
 
+    if method=='grounded_Laplacian':
+        for pair in node_pairs:
+            node_order=[pair[0]]+list(set( G.nodes )-set(pair)  )+[pair[1]]
+            W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order)
+            out[pair]=np.sum( np.linalg.inv( np.eye(len(G)-1)-W[:-1,:-1] ),axis=-1 )[0]
+
     if method=='eig':
         # NOTE: Not fixed yet.
         trans = nx.to_numpy_matrix(G,weight=weight_str).T #trans_{i,j}=Prob(i|j)= Prob(j->i)
