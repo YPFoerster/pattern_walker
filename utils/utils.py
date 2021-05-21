@@ -581,6 +581,8 @@ def mfpt(
         for pair in node_pairs:
             node_order=[pair[0]]+list(set( list(G.nodes) )-set(pair)  )+[pair[1]]
             W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order)
+            if (np.sum(W,axis=-1)!=1).any:
+                W=np.diag(1/np.sum(W,axis=-1)).dot(W)
             out[pair]=np.sum( np.linalg.inv( np.eye(len(G)-1)-W[:-1,:-1] ),axis=-1 )[0]
 
     if method=='eig':
