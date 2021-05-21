@@ -476,7 +476,7 @@ def normalised_laplacian(G,weight='weight',stat_dist=None):
 
 def mfpt(
     G,node_pairs,weight_str='weight',stat_dist=None,norm_laplacian=None,
-    method='fundamental_matrix'
+    method='grounded_Laplacian'
     ):
     """
     Return mean first passage times (MFPT) of a Markov chain on G
@@ -579,7 +579,7 @@ def mfpt(
 
     if method=='grounded_Laplacian':
         for pair in node_pairs:
-            node_order=[pair[0]]+list(set( G.nodes )-set(pair)  )+[pair[1]]
+            node_order=[pair[0]]+list(set( list(G.nodes) )-set(pair)  )+[pair[1]]
             W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order)
             out[pair]=np.sum( np.linalg.inv( np.eye(len(G)-1)-W[:-1,:-1] ),axis=-1 )[0]
 
