@@ -661,13 +661,16 @@ def cluster_by_branch(G):
     and G.target_node such that the list for each node contains all descendants
     of the node NOT following the shortest path to the target. """
     path = nx.shortest_path(G,G.root, G.target_node)
+    #antiparallel edges in of the path, keyed by the upper node
     path_edges={path[i]:[(path[i],path[i+1]),(path[i+1],path[i])] for i in range(len(path)-1)}
+    #copy G to be able to remove edges without destroying the input
     H=deepcopy(G.hierarchy_backup)
     clusters={}
     for node in path:
         try:
+            #we want the descendants of node that are NOT down the path
             H.remove_edges_from(path_edges[node])
-            clusters[node]={'cluster':list(nx.descendants(H,node))+[node]}
+            clusters[node]={'cluster':[node]+list(nx.descendants(H,node))}
         except KeyError:
             if node==G.target_node:
                 clusters[node]={'cluster':[node]}
