@@ -509,7 +509,7 @@ def mutate_pattern(pattern,gamma,parent_prior=0.5,child_prior=None):
     modified by the marginal expectation of each bit."""
     if child_prior is None:
         child_prior=parent_prior
-    flip_prob=flip_probability_handle(gamma,parent_prior,child_prior)
+    flip_prob=flip_probability_handle(child_prior*gamma,parent_prior,child_prior)
     pattern=list(pattern)
     return np.array([ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ])
 
