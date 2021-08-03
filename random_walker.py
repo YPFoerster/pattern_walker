@@ -299,7 +299,6 @@ class fullProbPatternWalker(patternWalker):
         self.num_sections=self.set_position_numbers(G,init_pos)
         self.sec_size=int(pattern_len/self.num_sections)
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
-
     def set_position_numbers(self,G,init_pos):
         G.nodes[init_pos]['section']=0 #descendant from which child of root?
         G.nodes[init_pos]['depth']=0 #distance from root
@@ -509,7 +508,7 @@ def mutate_pattern(pattern,gamma,parent_prior=0.5,child_prior=None):
     modified by the marginal expectation of each bit."""
     if child_prior is None:
         child_prior=parent_prior
-    flip_prob=flip_probability_handle(child_prior*gamma,parent_prior,child_prior)
+    flip_prob=flip_probability_handle(parent_prior*gamma,parent_prior,child_prior)
     pattern=list(pattern)
     return np.array([ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ])
 
