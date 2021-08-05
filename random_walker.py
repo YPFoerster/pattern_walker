@@ -333,11 +333,11 @@ class fullProbPatternWalker(patternWalker):
             out_sec = np.array(range(len(in_sec),self.pattern_len))
             pattern=np.roll(self.nodes[self.root]['pattern'],-left_sec_bound)
             pattern[in_sec]=mutate_pattern(
-                                        pattern[in_sec],self.root_flip_rate,self.root_prior,self.high_child_prior
+                                        pattern[in_sec],self.root_flip_rate,self.root_prior,self.high_child_prior,at_root=True
                                             )
             if len(out_sec):
                 pattern[out_sec]=mutate_pattern(
-                                            pattern[out_sec],self.root_flip_rate,self.root_prior,self.low_child_prior
+                                            pattern[out_sec],self.root_flip_rate,self.root_prior,self.low_child_prior,at_root=True
                                                 )
             self.nodes[head]['pattern']=np.roll(pattern,left_sec_bound)
 
@@ -351,11 +351,11 @@ class fullProbPatternWalker(patternWalker):
                 out_sec = np.array(range(len(in_sec),self.pattern_len))
                 pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_sec_bound)
                 pattern[in_sec]=mutate_pattern(
-                                            pattern[in_sec],self.flip_rate,self.high_child_prior,self.high_child_prior
+                                            pattern[in_sec],self.flip_rate,self.high_child_prior,self.high_child_prior,at_root=False
                                                 )
                 if len(out_sec):
                     pattern[out_sec]=mutate_pattern(
-                                                pattern[out_sec],self.flip_rate,self.low_child_prior,self.low_child_prior
+                                                pattern[out_sec],self.flip_rate,self.low_child_prior,self.low_child_prior,at_root=False
                                                     )
                 self.nodes[node]['pattern']=np.roll(pattern,left_sec_bound)
             queue=[suc for node in queue for suc in self.successors(node)]
@@ -503,20 +503,23 @@ def hamming_dist(a,b):
     """Return number of non-equal entries of a and b."""
     return np.linalg.norm(a-b,ord=1)
 
-def mutate_pattern(pattern,gamma,parent_prior=0.5,child_prior=None):
+def mutate_pattern(pattern,gamma,parent_prior=0.5,child_prior=None,at_root=False):
     """Expect a binary string and flip every entry with probability gamma,
     modified by the marginal expectation of each bit."""
     if child_prior is None:
         child_prior=parent_prior
-    flip_prob=flip_probability_handle(parent_prior*gamma,parent_prior,child_prior)
+    flip_prob=flip_probability_handle(gamma,parent_prior,child_prior,at_root)
     pattern=list(pattern)
     return np.array([ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ])
 
-def flip_probability_handle(gamma,parent_prior,child_prior):
+def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
     """Returns probabilty function to flip a bit depending on its state and
     marginal expectations of parent and child."""
     # if root_prior==0.5:
     #     return lambda state: gamma
+    if not at_root:
+        #due to the recent rescaling idea
+        gamma*=parent_prior
     if parent_prior==0:
         return lambda state: gamma
     else:
