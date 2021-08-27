@@ -4,7 +4,7 @@ approximate MFPT from root to target.
 """
 
 import pattern_walker as rw
-import numpy as np 
+import numpy as np
 
 __all__ = [
     'MF_patternWalker', 'overlap_MF_patternWalker'
@@ -12,7 +12,10 @@ __all__ = [
 
 
 class MF_patternWalker(rw.fullProbPatternWalker):
-    #does all of the above with the correct parameters as given by G
+    """
+    Have mean-field computation for pattern_walker all in one place. args and
+    kwargs are the relevant parameters for the patterwalker.
+    """
     def __init__(self,c=4,h=3,*args,**params):
         self.c=c
         self.h=h
@@ -205,9 +208,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             if f2==0:
                 out=1.
             else:
-                out=1+f2*L
+                out=1+f2*self.pattern_len
         else:
-            out=1-2*f2+f2*(L+2)*(1-(1-fk)**(L+1))/((L+1)*fk)
+            out=1-2*f2+f2*(self.pattern_len+2)*(1-(1-fk)**(self.pattern_len+1))/((self.pattern_len+1)*fk)
         return out
 
     def root_cluster_eq_ratio(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
