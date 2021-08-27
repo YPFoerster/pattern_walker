@@ -1,1 +1,1 @@
-from pattern_walker.mean_field import *
+from pattern_walker.mean_field.mean_field import *
