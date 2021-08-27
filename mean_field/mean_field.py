@@ -3,7 +3,13 @@ Class for walker with approximate average-patterns, in particular the
 approximate MFPT from root to target.
 """
 
-import random_walker as rw
+import pattern_walker as rw
+import numpy as np 
+
+__all__ = [
+    'MF_patternWalker', 'overlap_MF_patternWalker'
+    ]
+
 
 class MF_patternWalker(rw.fullProbPatternWalker):
     #does all of the above with the correct parameters as given by G
