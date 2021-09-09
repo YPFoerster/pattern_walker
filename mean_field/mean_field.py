@@ -5,6 +5,7 @@ approximate MFPT from root to target.
 
 import pattern_walker as rw
 import numpy as np
+import networkx as nx
 
 __all__ = [
     'MF_patternWalker', 'overlap_MF_patternWalker'
@@ -301,6 +302,23 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         out = np.sum(np.sum( [[eq_ratio_list[self.h-k-1]/cord_weight_list[self.h-k-1] for k in range(i)] for i in range(1,self.h+1)] ))
         return out
 
+    def MTM(self, number_samples: int) ->np.array:
+        #return the average transition matrix, sampled over number_samples interations.
+        W=np.zeros( (len(self),len(self)) )
+        node_order=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
+        for _ in range(number_samples):
+            self.reset_patterns()
+            W_temp=nx.to_numpy_array(self,nodelist=node_order)
+            if (np.sum(W_temp,axis=-1)!=1).any:
+                W_temp=np.diag(1/np.sum(W_temp,axis=-1)).dot(W_temp)
+            W+=W_temp
+        W/=number_samples
+        return W
+
+    def MTM_mfpt(self, number_samples: int) -> np.float():
+        W=self.MTM(number_samples)
+        out = np.sum( np.linalg.inv( np.eye(len(self)-1) - W[:-1,:-1] ),axis=-1 )[0]
+        return out
 
 class overlap_MF_patternWalker(MF_patternWalker):
     #does all of the above with the correct parameters as given by G
