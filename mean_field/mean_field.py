@@ -183,14 +183,14 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
         out=0.
         try:
-            if k==0 and m==0:
-                out=0
-            elif m==0:
+            if k+m+up+down==0:
+                out=0.
+            elif m+down==0:
                 if up==0:
                     out=self.f_left(k,**kwargs)
                 else:
                     out=self.f_up(k,**kwargs)
-            elif k==0:
+            elif k+up==0:
                 if down==0:
                     out=self.f_left(k,ajl=ajr,**kwargs)
                 else:
@@ -203,11 +203,11 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def weight_bias(self,f2,fk):
-        out=1.
+        out=0.
         #of E(w_l/w_r)=1+epsilon return epsilon
         if fk==0:
             if f2==0:
-                out=1.
+                out=0.
             else:
                 out=f2*self.pattern_len
         else:
@@ -227,8 +227,8 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             Gammap=self.root_flip_rate
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
-        bias_list=[ self.weight_bias( self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs) ), self.weight_bias(self.f(0,0,1,1,**kwargs),self.f(self.h-1,1,0,0,**kwargs)) ]+[ self.weight_bias( self.f(0,0,0,2,**kwargs),self.f(self.h-1,1,1,m,**kwargs) )  for m in range(self.h-2) ]
-        out=1+ (self.c-1)/(self.c+1+bias_list[0])*\
+        bias_list=[ self.weight_bias( self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs) ), self.weight_bias(self.f(0,0,1,1,**kwargs),self.f(self.h-1,1,0,0,**kwargs)) ]+[ self.weight_bias( self.f(0,0,0,2,**kwargs),self.f(self.h-1,1,1,m,**kwargs) )  for m in range(self.h-1) ]
+        out=1+ (self.c-1)/(self.c+bias_list[0])*\
             (
             np.sum([
                     self.c**(l-1)*(self.c+1+bias_list[l])/np.prod( [1+bias_list[k] for k in range(1,l+1)])
@@ -255,11 +255,11 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         e_r=self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
         e_u=self.weight_bias(self.f(1,1,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
 
-        bias_list=[ e_r,e_u ]+[ self.weight_bias( self.f(2,0,0,0,**kwargs),self.f(self.h-2+m,0,0,0,**kwargs) )  for m in range(1,self.h-1) ]
+        bias_list=[ e_r,e_u ]+[ self.weight_bias( self.f(2,0,0,0,**kwargs),self.f(self.h-1+m,0,0,0,**kwargs) )  for m in range(self.h-2) ]
         out=1+(self.c-1)/( (self.c+bias_list[0])*(1+bias_list[1])+1+bias_list[0] )*\
             (
             np.sum([
-                        self.c**(l-1)*(self.c+1+bias_list[l])/np.prod( [1+bias_list[k] for k in range(2,l+2)])
+                        self.c**(l-1)*(self.c+1+bias_list[l+1])/np.prod( [1+bias_list[k] for k in range(2,l+2)])
                 for l in range(1,self.h-1) ])+\
             self.c**(self.h-2)/np.prod( [1+bias_list[k] for k in range(2,self.h)])
             )
@@ -282,7 +282,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         if k==0:
             return 1
         bias_list=[ self.weight_bias( self.f(2,0,0,0,**kwargs),self.f(l,0,0,0,**kwargs) )  for l in range(k-1,2*k-1) ]
-        out=1+ (self.c-1)/(c+1+bias_list[0])*\
+        out=1+ (self.c-1)/(self.c+1+bias_list[0])*\
             (
             np.sum([
                         self.c**(l-1)*(self.c+1+bias_list[l])/np.prod( [ 1+bias_list[m] for m in range(1,l+1)])
@@ -305,10 +305,11 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #just under the root things are a bit messy, hence the following epsilons
         e_r=self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
-        e_u=self.weight_bias(self.f(2,1,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
-        cord_weight_list = [ self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs))/(self.c+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs))) for k in range(0,self.h-2) ] + [ e_r*e_u/((self.c-1)*e_u+e_r+e_u*e_r) ] + [ self.weight_bias(self.f(1,1,1,1,**kwargs),self.f(self.h-1,0,0,0,**kwargs))/(self.c-1+self.weight_bias(self.f(1,1,1,1,**kwargs),self.f(self.h-1,0,0,0,**kwargs))) ]
-        eq_ratio_list = [ self.eq_ratio(k+1) for k in range(0,self.h-2) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
-        out = np.sum(np.sum( [[eq_ratio_list[self.h-k-1]/cord_weight_list[self.h-k-1] for k in range(i)] for i in range(1,self.h+1)] ))
+        e_u=self.weight_bias(self.f(1,1,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
+        cord_weight_list = [ (1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs)))/(self.c+1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs))) for k in range(0,self.h-2) ] + [ (1+e_r)*(1+e_u)/( (self.c+e_r)*(1+e_u)+1+e_u ) ] + [ (1+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs)))/(self.c+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs))) ]
+        eq_ratio_list = [ self.eq_ratio(k) for k in range(1,self.h-1) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
+        print(eq_ratio_list)
+        out = np.sum(np.sum( [[eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)] for i in range(self.h)] ))
         return out
 
     def MTM(self, number_samples: int) ->np.array:
