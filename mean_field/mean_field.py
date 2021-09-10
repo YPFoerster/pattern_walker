@@ -308,7 +308,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         e_u=self.weight_bias(self.f(1,1,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
         cord_weight_list = [ (1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs)))/(self.c+1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs))) for k in range(0,self.h-2) ] + [ (1+e_r)*(1+e_u)/( (self.c+e_r)*(1+e_u)+1+e_u ) ] + [ (1+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs)))/(self.c+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs))) ]
         eq_ratio_list = [ self.eq_ratio(k) for k in range(1,self.h-1) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
-        print(eq_ratio_list)
         out = np.sum(np.sum( [[eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)] for i in range(self.h)] ))
         return out
 
