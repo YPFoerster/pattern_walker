@@ -181,26 +181,36 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         if Gammap is None:
             Gammap=self.root_flip_rate
 
-        out=0.
-        try:
-            if k+m+up+down==0:
-                out=0.
-            elif m+down==0:
-                if up==0:
-                    out=self.f_left(k,**kwargs)
-                else:
-                    out=self.f_up(k,**kwargs)
-            elif k+up==0:
-                if down==0:
-                    out=self.f_left(k,ajl=ajr,**kwargs)
-                else:
-                    out=self.f_down(m,**kwargs)
-            else:
-                out=self.f_up_down(k,m,**kwargs)
-
-        except ZeroDivisionError:
-            pass
+        out=self.Q_power(k).dot(np.linalg.matrix_power(self.Qp_up(),up).dot(np.linalg.matrix_power(self.Qp_down(),down).dot(self.Q_power(m,ajl=ajr))))
+        if k+up>0:
+            out = ajl*out[1,0]+(1-ajl)*out[0,1]
+        elif down>0:
+            out = a*out[1,0]+(1-a)*out[0,1]
+        else:
+            out = ajr*out[1,0]+(1-ajr)*out[0,1]
         return out
+        # out=0.
+        #
+        #
+        # try:
+        #     if k+m+up+down==0:
+        #         out=0.
+        #     elif m+down==0:
+        #         if up==0:
+        #             out=self.f_left(k,**kwargs)
+        #         else:
+        #             out=self.f_up(k,**kwargs)
+        #     elif k+up==0:
+        #         if down==0:
+        #             out=self.f_left(k,ajl=ajr,**kwargs)
+        #         else:
+        #             out=self.f_down(m,**kwargs)
+        #     else:
+        #         out=self.f_up_down(k,m,**kwargs)
+        #
+        # except ZeroDivisionError:
+        #     pass
+        # return out
 
     def weight_bias(self,f2,fk):
         out=0.
@@ -308,6 +318,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         e_u=self.weight_bias(self.f(1,1,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
         cord_weight_list = [ (1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs)))/(self.c+1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs))) for k in range(0,self.h-2) ] + [ (1+e_r)*(1+e_u)/( (self.c+e_r)*(1+e_u)+1+e_u ) ] + [ (1+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs)))/(self.c+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs))) ]
         eq_ratio_list = [ self.eq_ratio(k) for k in range(1,self.h-1) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
+        print(eq_ratio_list)
         out = np.sum(np.sum( [[eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)] for i in range(self.h)] ))
         return out
 
