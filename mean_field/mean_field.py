@@ -318,7 +318,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         e_u=self.weight_bias(self.f(1,1,0,0,**kwargs),self.f(self.h-2,0,0,0,**kwargs))
         cord_weight_list = [ (1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs)))/(self.c+1+self.weight_bias(self.f(2,0,0,0,**kwargs),self.f(k,0,0,0,**kwargs))) for k in range(0,self.h-2) ] + [ (1+e_r)*(1+e_u)/( (self.c+e_r)*(1+e_u)+1+e_u ) ] + [ (1+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs)))/(self.c+self.weight_bias(self.f(0,1,1,0,**kwargs),self.f(self.h-1,0,0,0,**kwargs))) ]
         eq_ratio_list = [ self.eq_ratio(k) for k in range(1,self.h-1) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
-        print(eq_ratio_list)
         out = np.sum(np.sum( [[eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)] for i in range(self.h)] ))
         return out
 
@@ -348,14 +347,20 @@ class overlap_MF_patternWalker(MF_patternWalker):
         super(overlap_MF_patternWalker,self).__init__(c,h,*args,**params)
         if self.overlap>self.pattern_len*(self.c-1)/(2*self.c):
             self.overlap=(self.pattern_len-int(self.pattern_len/self.c))/2
+        ## TODO: this needs to be checked
         self.O_list=np.array([
             max(0,int(self.pattern_len/self.c)*(2-i)+2*self.overlap)+\
             max(0,i*int(self.pattern_len/self.c)-self.pattern_len+2*self.overlap)
         for i in range(2,c+1)])
+        self.U_list=np.array([
+            max(0,-int(self.pattern_len/self.c)*(2-i)-2*self.overlap)+\
+            max(0,-i*int(self.pattern_len/self.c)+self.pattern_len-2*self.overlap)
+        for i in range(2,c+1)])
         self.O_hh=np.sum(self.O_list)/(self.pattern_len*(self.c-1))
-        self.O_ll=1+self.O_hh-2*(2*self.overlap/self.pattern_len+1/self.c)  #max(0,1-(2/self.c+4*self.overlap/self.pattern_len))
+        self.O_ll=np.sum(self.U_list)/(self.pattern_len*(self.c-1))#1+self.O_hh-2*(2*self.overlap/self.pattern_len+1/self.c)  #max(0,1-(2/self.c+4*self.overlap/self.pattern_len))
         self.O_hl=(1-self.O_hh-self.O_ll)/2
         self.O_lh=self.O_hl
+        print(self.overlap,':',self.O_hh,self.O_ll,self.O_hl)
 
     def f_left(self,k,**kwargs):
         f_h=MF_patternWalker.f_left(self,k,ajl=self.high_child_prior)
