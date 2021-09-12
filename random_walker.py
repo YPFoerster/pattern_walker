@@ -296,22 +296,44 @@ class fullProbPatternWalker(patternWalker):
         self.low_child_prior=low_child_prior
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
-        self.num_sections=self.set_position_numbers(G,init_pos)
+        self.num_sections=self.set_position_numbers(G,init_pos,target)
         self.sec_size=int(pattern_len/self.num_sections)
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
-    def set_position_numbers(self,G,init_pos):
+
+    def set_position_numbers(self,G,init_pos,target):
         G.nodes[init_pos]['section']=0 #descendant from which child of root?
         G.nodes[init_pos]['depth']=0 #distance from root
-        section_heads=G.successors(init_pos)
         sec_counter=1
-        for head in section_heads:
-            G.nodes[head]['section']=sec_counter
-            G.nodes[head]['depth']=1
-            for descendant in nx.descendants(G,head):
+        #we prefer to have the target in section numero 1
+        target_part= nx.shortest_path(G,init_pos,target)[1]
+        # for head in filter( lambda x : target in nx.descendants(G,x),section_heads):
+        G.nodes[target_part]['section']=sec_counter
+        G.nodes[target_part]['depth']=1
+        for descendant in nx.descendants(G,target_part):
+            G.nodes[descendant]['section']=sec_counter
+            G.nodes[descendant]['depth']=nx.shortest_path_length(G,init_pos,descendant)
+        sec_counter+=1
+        other_parts=set(G.successors(init_pos))-set([target_part])
+
+        for part in other_parts:
+            G.nodes[part]['section']=sec_counter
+            G.nodes[part]['depth']=1
+            for descendant in nx.descendants(G,part):
                 G.nodes[descendant]['section']=sec_counter
                 G.nodes[descendant]['depth']=nx.shortest_path_length(G,init_pos,descendant)
             sec_counter+=1
         return sec_counter-1
+
+    def set_coordinates(self):
+        h=nx.shortest_path_length(self,self.root,self.target_node)
+        target_sec=self.nodes[self.target_node]['section']
+        for node in self.nodes:
+            if self.nodes[node]['section']==target_sec:
+                self.nodes[node]['coordinates']=(nx.shortest_path_length(self,self.target_node,node),0,0,0,target_sec-1)
+            elif node==self.root:
+                self.nodes[node]['coordinates']=(h-1,1,0,0,0)
+            else:
+                self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root),self.nodes[node]['section'] )
 
     def set_patterns(self):
         """
