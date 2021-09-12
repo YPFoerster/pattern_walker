@@ -495,10 +495,12 @@ class overlap_MF_patternWalker(MF_patternWalker):
 
         out=1+np.sum([
                 1/(self.c+bias_dict[mu][0])*\
+                (
                 np.sum([
                 self.c**(l-1)*(self.c+1+bias_dict[mu][l])/np.prod([1+bias_dict[mu][k] for k in range(1,l+1)])
                 for l in range(1,self.h)])+\
                 self.c**(self.h-1)/np.prod([1+bias_dict[mu][k] for k in range(1,self.h)])
+                )
             for mu in range(2,self.c+1) ])
         #
         # out=1+ (self.c-1)/(self.c+bias_list[0])*\
