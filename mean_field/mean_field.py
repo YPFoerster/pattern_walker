@@ -385,7 +385,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
         self.O_hl=(1-self.O_hh-self.O_ll)/2
         self.O_lh=self.O_hl
 
-    def f(self,k,up,down,m,**kwargs):
+    def f(self,k,up,down,m,mu=2,**kwargs):
         #if ajl is None:
         a_h=self.high_child_prior
         #if ajr is None:
@@ -425,7 +425,10 @@ class overlap_MF_patternWalker(MF_patternWalker):
             f_hl=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_l)
             f_lh=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_h)
             f_ll=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
-            out=self.O_hh*f_hh+self.O_hl*f_hl+self.O_lh*f_lh+self.O_ll*f_ll
+            if mu==0:
+                out=self.O_hh*f_hh+self.O_lh*f_lh+self.O_hl*f_hl+self.O_ll*f_ll
+            else:
+                out=self.O_list[mu-2]/self.pattern_len*f_hh+(self.pattern_len-self.U_list[mu-2]-self.O_list[mu-2])/self.pattern_len*(f_hl+f_lh)/2+self.U_list[mu-2]/self.pattern_len*f_ll
 
         #
         # if down+m==0 or k+up==0:
@@ -473,4 +476,36 @@ class overlap_MF_patternWalker(MF_patternWalker):
         f_h=MF_patternWalker.f(self,0,up=0,down=0,m=m,ajr=self.high_child_prior)
         f_l=MF_patternWalker.f(self,0,up=0,down=0,m=m,ajr=self.low_child_prior)
         out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
+        return out
+
+    def root_cluster_eq_ratio(self):
+        #if ajl is None:
+        ajl=self.high_child_prior
+        #if ajr is None:
+        ajr=self.high_child_prior
+        #if a is None:
+        a=self.root_prior
+        #if Gamma is None:
+        Gamma=self.flip_rate
+        #if Gammap is None:
+        Gammap=self.root_flip_rate
+        kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
+        #eq prob of cluster divided by eq prob of articulation pt, here the root itself
+        bias_dict={mu: [self.weight_bias( self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu) ), self.weight_bias(self.f(0,0,1,1,mu,ajl=a),self.f(self.h-1,1,0,0,mu,ajr=a)) ]+[ self.weight_bias( self.f(0,0,0,2,mu),self.f(self.h-1,1,1,m,mu) )  for m in range(self.h-1)] for mu in range(2,self.c+1)}
+
+        out=1+np.sum([
+                1/(self.c+bias_dict[mu][0])*\
+                np.sum([
+                self.c**(l-1)*(self.c+1+bias_dict[mu][l])/np.prod([1+bias_dict[mu][k] for k in range(1,l+1)])
+                for l in range(1,self.h)])+\
+                self.c**(self.h-1)/np.prod([1+bias_dict[mu][k] for k in range(1,self.h)])
+            for mu in range(2,self.c+1) ])
+        #
+        # out=1+ (self.c-1)/(self.c+bias_list[0])*\
+        #     (
+        #     np.sum([
+        #             self.c**(l-1)*(self.c+1+bias_list[l])/np.prod( [1+bias_list[k] for k in range(1,l+1)])
+        #             for l in range(1,self.h) ])+\
+        #     self.c**(self.h-1)/np.prod( [1+bias_list[k] for k in range(1,self.h)])
+        #     )
         return out
