@@ -349,6 +349,108 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
 
+    def MTM(self, number_samples: int,nodelist: list=None) ->np.array:
+        #return the average transition matrix, sampled over number_samples interations.
+        W=np.zeros( (len(self),len(self)) )
+        if nodelist is None:
+            nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
+        for _ in range(number_samples):
+            self.reset_patterns()
+            W_temp=nx.to_numpy_array(self,nodelist=nodelist)
+            if (np.sum(W_temp,axis=-1)!=1).any:
+                W_temp=np.diag(1/np.sum(W_temp,axis=-1)).dot(W_temp)
+            W+=W_temp
+        W/=number_samples
+        return W
+
+    def MTM_mfpt(self, number_samples: int=0, nodelist: list=None) -> np.float():
+        """
+        Calculates MFPT based on mean transition matrix, MTM. If number_samples=0,
+        the approximate function approx_MTM is used. Else we sample the MTM.
+        """
+        out=0
+        if nodelist is None:
+            nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
+
+        if number_samples:
+            out=self.MTM(number_samples,nodelist=nodelist)
+
+        else:
+            _,out=self.approx_MTM(nodelist=nodelist)
+        out = np.sum( np.linalg.inv( np.eye(len(self)-1) - out[:-1,:-1] ),axis=-1 )[0]
+        return out
+
+    def approx_MTM(self,nodelist=None):
+        if nodelist is None:
+            nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
+        out=nx.DiGraph()
+        out.add_nodes_from(self.nodes)
+        for node in self.nodes:
+            weights=self.mean_out_weights(node)
+            out.add_weighted_edges_from(weights)
+        return out,nx.to_numpy_array(out,nodelist=nodelist)
+
+    def mean_out_weights(self,node):
+        neigh=list(self.neighbors(node))
+        out=[]
+        try:
+            toward_target=nx.shortest_path(self,node,self.target_node)[1]
+        except IndexError:
+            pass
+
+        if len(neigh)== 1:
+            out=[ (node,*neigh,1.) ]
+
+        elif node==self.root:
+            weights=[(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu)))  for mu in range(2,self.c+1)]
+            e_0=np.prod(weights)
+            normalisation=1/(e_0+np.sum([ e_0/(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu))) for mu in range(2,self.c+1) ]))
+            out.append((node,toward_target,e_0*normalisation))
+            for neighbor in set(neigh)-set([toward_target]):
+                part=self.nodes[neighbor]['coordinates'][-1]
+                out.append((node,neighbor,e_0*normalisation/weights[part-2]))
+
+
+        elif self.root in neigh and self.nodes[node]['coordinates'][2]==0:
+            e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0))
+            e_u=1+self.weight_bias(self.f(1,1,0,0,ajr=self.root_prior),self.f(self.h-2,0,0,0))
+            normalisation=1/(e_u*(self.c-1)+e_r+e_r*e_u)
+            for neighbor in neigh:
+                if neighbor==self.root:
+                    out.append( (node,neighbor,e_r*normalisation ) )
+                elif neighbor ==toward_target:
+                     out.append( (node,neighbor,e_u*e_r*normalisation ) )
+                else:
+                    out.append( (node,neighbor,e_u*normalisation ) )
+
+        elif self.root in neigh:
+            coordinates=list(self.nodes[node]['coordinates'])
+            coordinates[2]=0
+            e=1+self.weight_bias(self.f(0,0,1,1,ajl=self.root_prior),self.f( *coordinates ))
+            for neighbor in neigh:
+                if neighbor==self.root:
+                        out.append( (node,neighbor, e/(self.c+e) ) )
+                else:
+                    out.append( ( node,neighbor,1/(self.c+e) ) )
+
+        else:
+            coordinates=list(self.nodes[node]['coordinates'])
+            short_path=[2,0,0,0]
+            if coordinates[3]>0:
+                coordinates[3]-=1
+                short_path=[0,0,0,2]
+            else:
+                coordinates[0]-=1
+            e=1+self.weight_bias(self.f(*short_path,coordinates[-1]),self.f( *coordinates ))
+            for neighbor in neigh:
+                if neighbor==toward_target:
+                    out.append(( node,neighbor,e/(self.c+e)))
+                else:
+                    out.append(( node,neighbor,1/(self.c+e) ))
+
+        return out
+
+
 class overlap_MF_patternWalker(MF_patternWalker):
     #does all of the above with the correct parameters as given by G
     def __init__(self,c=4,h=3,*args,**params):
@@ -524,103 +626,3 @@ class overlap_MF_patternWalker(MF_patternWalker):
         eq_ratio_list = [ self.eq_ratio(k) for k in range(1,self.h-1) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
         out = np.sum(np.sum( [[eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)] for i in range(self.h)] ))
         return out
-
-    def MTM(self, number_samples: int,nodelist: list=None) ->np.array:
-        #return the average transition matrix, sampled over number_samples interations.
-        W=np.zeros( (len(self),len(self)) )
-        if nodelist is None:
-            nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
-        for _ in range(number_samples):
-            self.reset_patterns()
-            W_temp=nx.to_numpy_array(self,nodelist=nodelist)
-            if (np.sum(W_temp,axis=-1)!=1).any:
-                W_temp=np.diag(1/np.sum(W_temp,axis=-1)).dot(W_temp)
-            W+=W_temp
-        W/=number_samples
-        return W
-
-    def MTM_mfpt(self, number_samples: int=0, nodelist: list=None) -> np.float():
-        """
-        Calculates MFPT based on mean transition matrix, MTM. If number_samples=0,
-        the approximate function approx_MTM is used. Else we sample the MTM.
-        """
-        out=0
-        if nodelist is None:
-            nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
-        
-        if number_samples:
-            out=self.MTM(number_samples,nodelist=nodelist)
-
-        else:
-            out=self.approx_MTM(nodelist=nodelist)
-        out = np.sum( np.linalg.inv( np.eye(len(self)-1) - out[:-1,:-1] ),axis=-1 )[0]
-        return out
-
-
-    def mean_out_weights(self,node):
-        neigh=list(self.neighbors(node))
-        out=[]
-        try:
-            toward_target=nx.shortest_path(self,node,self.target_node)[1]
-        except IndexError:
-            pass
-
-        if len(neigh)== 1:
-            out=[ (node,*neigh,1.) ]
-
-        elif node==self.root:
-            weights=[(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu)))  for mu in range(2,self.c+1)]
-            e_0=np.prod(weights)
-            normalisation=1/(e_0+np.sum([ e_0/(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu))) for mu in range(2,self.c+1) ]))
-            out.append((node,toward_target,e_0*normalisation))
-            for neighbor in set(neigh)-set([toward_target]):
-                part=self.nodes[neighbor]['coordinates'][-1]
-                out.append((node,neighbor,e_0*normalisation/weights[part-2]))
-
-
-        elif self.root in neigh and self.nodes[node]['coordinates'][2]==0:
-            e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0))
-            e_u=1+self.weight_bias(self.f(1,1,0,0,ajr=self.root_prior),self.f(self.h-2,0,0,0))
-            normalisation=1/(e_u*(self.c-1)+e_r+e_r*e_u)
-            for neighbor in neigh:
-                if neighbor==self.root:
-                    out.append( (node,neighbor,e_r*normalisation ) )
-                elif neighbor ==toward_target:
-                     out.append( (node,neighbor,e_u*e_r*normalisation ) )
-                else:
-                    out.append( (node,neighbor,e_u*normalisation ) )
-
-        elif self.root in neigh:
-            coordinates=list(self.nodes[node]['coordinates'])
-            coordinates[2]=0
-            e=1+self.weight_bias(self.f(0,0,1,1,ajl=self.root_prior),self.f( *coordinates ))
-            for neighbor in neigh:
-                if neighbor==self.root:
-                        out.append( (node,neighbor, e/(self.c+e) ) )
-                else:
-                    out.append( ( node,neighbor,1/(self.c+e) ) )
-
-        else:
-            coordinates=list(self.nodes[node]['coordinates'])
-            short_path=[2,0,0,0]
-            if coordinates[3]>0:
-                coordinates[3]-=1
-                short_path=[0,0,0,2]
-            else:
-                coordinates[0]-=1
-            e=1+self.weight_bias(self.f(*short_path,coordinates[-1]),self.f( *coordinates ))
-            for neighbor in neigh:
-                if neighbor==toward_target:
-                    out.append(( node,neighbor,e/(self.c+e)))
-                else:
-                    out.append(( node,neighbor,1/(self.c+e) ))
-
-        return out
-
-    def approx_MTM(self,nodelist=None):
-        out=nx.DiGraph()
-        out.add_nodes_from(self.nodes)
-        for node in self.nodes:
-            weights=self.mean_out_weights(node)
-            out.add_weighted_edges_from(weights)
-        return nx.to_numpy_array(out,nodelist=nodelist)
