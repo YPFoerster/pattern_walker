@@ -525,13 +525,14 @@ class overlap_MF_patternWalker(MF_patternWalker):
         out = np.sum(np.sum( [[eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)] for i in range(self.h)] ))
         return out
 
-    def MTM(self, number_samples: int) ->np.array:
+    def MTM(self, number_samples: int,nodelist: list=None) ->np.array:
         #return the average transition matrix, sampled over number_samples interations.
         W=np.zeros( (len(self),len(self)) )
-        node_order=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
+        if nodelist is None:
+            nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
         for _ in range(number_samples):
             self.reset_patterns()
-            W_temp=nx.to_numpy_array(self,nodelist=node_order)
+            W_temp=nx.to_numpy_array(self,nodelist=nodelist)
             if (np.sum(W_temp,axis=-1)!=1).any:
                 W_temp=np.diag(1/np.sum(W_temp,axis=-1)).dot(W_temp)
             W+=W_temp
@@ -545,7 +546,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
         """
         out=0
         if number_samples:
-            out=self.MTM(number_samples)
+            out=self.MTM(number_samples,nodelist=nodelist)
 
         else:
             out=self.approx_MTM(nodelist=nodelist)
@@ -571,7 +572,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
             out.append((node,toward_target,e_0*normalisation))
             for neighbor in set(neigh)-set([toward_target]):
                 part=self.nodes[neighbor]['coordinates'][-1]
-                out.append((node,node,e_0*normalisation/weights[part-2]))
+                out.append((node,neighbor,e_0*normalisation/weights[part-2]))
 
 
         elif self.root in neigh and self.nodes[node]['coordinates'][2]==0:
@@ -589,13 +590,13 @@ class overlap_MF_patternWalker(MF_patternWalker):
         elif self.root in neigh:
             coordinates=list(self.nodes[node]['coordinates'])
             coordinates[2]=0
-            e=1+self.weight_bias(self.f(0,0,1,1),self.f( *coordinates ))
+            e=1+self.weight_bias(self.f(0,0,1,1,ajl=self.root_prior),self.f( *coordinates ))
             for neighbor in neigh:
                 if neighbor==self.root:
-                        out.append( [node,neighbor, (1+self.weight_bias(self.f(0,0,1,1),self.f( *coordinates )))/(self.c+1+self.weight_bias(self.f(0,0,1,1),self.f(*coordinates)))
-                        ] )
+                        out.append( (node,neighbor, e/(self.c+e) ) )
                 else:
-                    out.append(( node,neighbor,1/(self.c+1+self.weight_bias(self.f(0,0,1,1),self.f(*coordinates))) ))
+                    out.append( ( node,neighbor,1/(self.c+e) ) )
+
         else:
             coordinates=list(self.nodes[node]['coordinates'])
             short_path=[2,0,0,0]
