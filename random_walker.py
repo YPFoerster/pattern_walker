@@ -334,7 +334,7 @@ class fullProbPatternWalker(patternWalker):
             elif node==self.root:
                 self.nodes[node]['coordinates']=(h-1,1,0,0,0)
             else:
-                self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root),self.nodes[node]['section'] )
+                self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root)-1,self.nodes[node]['section'] )
         self.coordinates_set=True
 
     def set_patterns(self):
