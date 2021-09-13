@@ -545,6 +545,9 @@ class overlap_MF_patternWalker(MF_patternWalker):
         the approximate function approx_MTM is used. Else we sample the MTM.
         """
         out=0
+        if nodelist is None:
+            nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
+        
         if number_samples:
             out=self.MTM(number_samples,nodelist=nodelist)
 
