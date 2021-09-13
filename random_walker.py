@@ -298,6 +298,7 @@ class fullProbPatternWalker(patternWalker):
         self.root_flip_rate=root_flip_rate
         self.num_sections=self.set_position_numbers(G,init_pos,target)
         self.sec_size=int(pattern_len/self.num_sections)
+        self.coordinates_set=False
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
 
     def set_position_numbers(self,G,init_pos,target):
@@ -334,6 +335,7 @@ class fullProbPatternWalker(patternWalker):
                 self.nodes[node]['coordinates']=(h-1,1,0,0,0)
             else:
                 self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root),self.nodes[node]['section'] )
+        self.coordinates_set=True
 
     def set_patterns(self):
         """
@@ -381,6 +383,11 @@ class fullProbPatternWalker(patternWalker):
                                                     )
                 self.nodes[node]['pattern']=np.roll(pattern,left_sec_bound)
             queue=[suc for node in queue for suc in self.successors(node)]
+
+    def reset_patterns(self):
+        patternWalker.reset_patterns(self)
+        if self.coordinates_set:
+            self.set_coordinates()
 
 class sectionedPatternWalker(patternWalker):
     """
