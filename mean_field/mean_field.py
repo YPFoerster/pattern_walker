@@ -53,7 +53,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
         if aj>0:
             out= np.array(
-                    [[(1-a)*(1-Gammap)/(1-aj),(a-aj+(1-a)*Gammap)/(1-aj)],
+                    [[(1-a)*(1-Gammap)/(1-aj),1-(1-a)*(1-Gammap)/(1-aj)],
                      [(1-a)/aj*Gammap,1-(1-a)/aj*Gammap]]
                     )
         elif aj==0:
@@ -170,7 +170,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         #print('down {}:'.format(m),temp-out)
         return out
 
-    def f(self,k,up=0,down=0,m=0,ajl=None,ajr=None):
+    def f(self,k,up=0,down=0,m=0,mu=2,ajl=None,ajr=None):
         if ajl is None:
             ajl=self.high_child_prior
         if ajr is None:
@@ -215,7 +215,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         #     out = a*out[1,0]+(1-a)*out[0,1]
         # else:
         #     out = ajl*out[1,0]+(1-ajl)*out[0,1]
-        return out
+        #return out
         # out=0.
         #
         #
@@ -419,14 +419,16 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                 if neighbor==self.root:
                     out.append( (node,neighbor,e_r*normalisation ) )
                 elif neighbor ==toward_target:
-                     out.append( (node,neighbor,e_u*e_r*normalisation ) )
+                    out.append( (node,neighbor,e_u*e_r*normalisation ) )
                 else:
                     out.append( (node,neighbor,e_u*normalisation ) )
 
         elif self.root in neigh:
             coordinates=list(self.nodes[node]['coordinates'])
             coordinates[2]=0
-            e=1+self.weight_bias(self.f(0,0,1,1,ajl=self.root_prior),self.f( *coordinates ))
+            print(coordinates)
+            e=1+self.weight_bias(self.f(0,0,1,1,coordinates[4]),self.f(self.h-1,1,0,0))
+            print('e:',e)
             for neighbor in neigh:
                 if neighbor==self.root:
                         out.append( (node,neighbor, e/(self.c+e) ) )
@@ -442,6 +444,8 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             else:
                 coordinates[0]-=1
             e=1+self.weight_bias(self.f(*short_path,coordinates[-1]),self.f( *coordinates ))
+            if e>10:
+                print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
             for neighbor in neigh:
                 if neighbor==toward_target:
                     out.append(( node,neighbor,e/(self.c+e)))
