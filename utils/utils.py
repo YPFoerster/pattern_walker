@@ -678,7 +678,7 @@ def cluster_by_branch(G):
 
 def filter_nodes(G,attrstr,value):
     return [node for node,attrdict in G.nodes.items() if attrdict[attrstr]==value]
-
+    #should be identical to filter( lambda x: G.nodes[node][attrstr]==value, G.nodes)
 
 def timer_decorator(func,args,kwargs):
     @wraps(func)
