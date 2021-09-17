@@ -1,6 +1,7 @@
 import unittest
 import pattern_walker as pw
 from pattern_walker.utils import balanced_ditree,filter_nodes
+import networkx as nx
 from itertools import product
 import multiprocessing as mp
 import numpy as np
@@ -17,6 +18,9 @@ beta_h=0.0
 increment=0.05
 
 H,root=balanced_ditree(c,h)
+parts=nx.neighbors(H,root)
+parts=list(parts)
+
 #number of realisations of pattern distributions in this case
 number_of_samples=2000
 num_cores=4
@@ -48,7 +52,7 @@ class overlapTestCase(unittest.TestCase):
                 control[out[0]][out[1]]=out[3]
 
         testvalue=np.linalg.norm(mean_part_dist.values-control.values)/(len(Delta_range)*len(Gammap_range))
-        self.assertTrue( testvalue<1e-3, testvalue )
+        self.assertTrue( testvalue<5e-3, testvalue )
 
 
 def avg_dist(param_tuple):
@@ -59,8 +63,6 @@ def avg_dist(param_tuple):
     a_l=(1-a)*Gammap+beta_l
     G=pw.fullProbPatternWalker(H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
     part_dist=np.zeros(number_of_samples)
-    parts=filter_nodes(G,'depth',1)
-    parts=list(parts)
 
     for iter in range(number_of_samples):
         part_dist[iter]=np.mean([np.linalg.norm(G.nodes[parts[n1]]['pattern']-G.nodes[parts[n1+1]]['pattern'],ord=1) for n1 in range(len(parts)-1)] )
