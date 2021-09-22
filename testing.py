@@ -22,10 +22,9 @@ H,root=balanced_ditree(c,h)
 parts=nx.neighbors(H,root)
 parts=list(parts)
 leaves=leaves(H)
-part_leaves=[[node for node in  H.successors(part) if node in leaves] for part in parts]
-print(part_leaves)
+part_leaves=[[node for node in  nx.descendants(H,part) if node in leaves] for part in parts]
 #number of realisations of pattern distributions in this case
-number_of_samples=10
+number_of_samples=500
 num_cores=4
 
 class patternTestCase(unittest.TestCase):
@@ -75,10 +74,8 @@ class patternTestCase(unittest.TestCase):
         else:
             out_list=[]
             with mp.Pool(num_cores) as p:
-                print('Enter multiprocessing.')
                 for out in p.map(avg_vertical_dist, param_range):
                     out_list.append(out)
-                print('Finished multiprocessing.')
             for out in out_list:
                 mean_vertical_dist[out[0]][out[1]]=out[2]
                 control[out[0]][out[1]]=out[3]
@@ -139,8 +136,7 @@ def avg_vertical_dist(param_tuple):
     for iter in range(number_of_samples):
         vertical_dist+=np.mean( [[ np.linalg.norm(G.nodes[parts[sec_ndx]]['pattern']-G.nodes[leaf]['pattern'],ord=1) for leaf in part_leaves[sec_ndx] ] for sec_ndx in range(c)] )
         G.reset_patterns()
-        print(vertical_dist)
-    return (Delta,Gamma,vertical_dist/number_of_samples,expected_vertical_distance(Delta,Gamma))
+    return (Delta,Gamma,vertical_dist/number_of_samples,expected_vertical_distance(Gamma,Delta))
 
 
 
