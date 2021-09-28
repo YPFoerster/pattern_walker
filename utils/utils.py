@@ -583,8 +583,11 @@ def mfpt(
             W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order)
             if (np.sum(W,axis=-1)!=1).any:
                 W=np.diag(1/np.sum(W,axis=-1)).dot(W)
-            out[pair]=np.sum( np.linalg.inv( np.eye(len(G)-1)-W[:-1,:-1] ),axis=-1 )[0]
-
+                try:
+                    out[pair]=np.sum( np.linalg.inv( np.eye(len(G)-1)-W[:-1,:-1] ),axis=-1 )[0]
+                except np.linalg.LinAlgError:
+                    out[pair]=np.nan
+                    
     if method=='eig':
         # NOTE: Not fixed yet.
         trans = nx.to_numpy_matrix(G,weight=weight_str).T #trans_{i,j}=Prob(i|j)= Prob(j->i)
