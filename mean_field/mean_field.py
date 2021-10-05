@@ -58,9 +58,13 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                     )
         elif aj==0:
             out=np.array(
-                    [[1-Gammap,Gammap],
-                     [Gammap,1-Gammap]]
+                    [[(1-a)*(1-Gammap),1-(1-a)*(1-Gammap)],
+                     [0.,1.]]
                     )
+            # out=np.array(
+            #         [[1-Gammap,Gammap],
+            #          [Gammap,1-Gammap]]
+            #         )
         return out
 
     def R_down(self,aj=None,a=None,Gammap=None):
@@ -79,8 +83,12 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         elif a==0:
             out=np.array(
                     [[1-Gammap,Gammap],
-                     [Gammap,1-Gammap]]
+                     [0.,1.]]
                     )
+            # out=np.array(
+            #         [[1-Gammap,Gammap],
+            #          [Gammap,1-Gammap]]
+            #         )
         return out
 
     #for full overlap, the pattern distance rates at graph distance k from the target. Cases separated depending
@@ -240,6 +248,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         # return out
 
     def weight_bias(self,f2,fk):
+        ### TODO: Check this
         out=0.
         #of E(w_l/w_r)=1+epsilon return epsilon
         if fk==0:
@@ -427,7 +436,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             coordinates=list(self.nodes[node]['coordinates'])
             coordinates[2]=0
             print(coordinates)
-            e=1+self.weight_bias(self.f(0,0,1,1,coordinates[4]),self.f(self.h-1,1,0,0))
+            e=1+self.weight_bias(self.f(0,0,1,1,coordinates[4]),self.f(self.h-1,1,0,0,coordinates[4]))
             print('e:',e)
             for neighbor in neigh:
                 if neighbor==self.root:
@@ -444,8 +453,8 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             else:
                 coordinates[0]-=1
             e=1+self.weight_bias(self.f(*short_path,coordinates[-1]),self.f( *coordinates ))
-            if e>10:
-                print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
+            # if e>10:
+            print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
             for neighbor in neigh:
                 if neighbor==toward_target:
                     out.append(( node,neighbor,e/(self.c+e)))
