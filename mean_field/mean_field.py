@@ -43,7 +43,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             out=np.linalg.matrix_power(np.array( [[1,0],[Gamma,1-Gamma]] ),k)
         return out
 
-    def Qp_up(self,aj=None,a=None,Gammap=None):
+    def R_up(self,aj=None,a=None,Gammap=None):
         if aj is None:
             ajl=self.high_child_prior
         if a is None:
@@ -63,7 +63,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                     )
         return out
 
-    def Qp_down(self,aj=None,a=None,Gammap=None):
+    def R_down(self,aj=None,a=None,Gammap=None):
         if aj is None:
             aj=self.high_child_prior
         if a is None:
@@ -124,7 +124,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         #last edge goes up to the root
         #checked and found to be correct
         temp= 2*(1-a)*Gammap+a-ajl+2*(1-(1-Gamma)**(k))*(1-a)*ajl*(1-Gammap/ajl)
-        out=self.Q_power(k,ajl,Gamma).dot(self.Qp_up(ajl,a,Gammap))
+        out=self.Q_power(k,ajl,Gamma).dot(self.R_up(ajl,a,Gammap))
         out=ajl*out[1,0]+(1-ajl)*out[0,1]
         #print('up:',temp-out)
         return out
@@ -149,7 +149,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             2*self.kappa(k,ajl)*(1-a)*(ajl-Gammap)*(ajr-Gammap)/a+\
             2*self.kappa(m,ajr)*(1-self.kappa(k,ajl))*(1-a)*(ajl-Gammap)*(ajr-Gammap)/a
         #last two edges go over the root, up and then down from leftmost to some branch on the right
-        out=self.Q_power(k,ajl,Gamma).dot(self.Qp_up(ajl,a,Gammap).dot(self.Qp_down(ajr,a,Gammap).dot(self.Q_power(m,ajr,Gamma))))
+        out=self.Q_power(k,ajl,Gamma).dot(self.R_up(ajl,a,Gammap).dot(self.R_down(ajr,a,Gammap).dot(self.Q_power(m,ajr,Gamma))))
         out=ajl*out[1,0]+(1-ajl)*out[0,1]
         #print('fud:',out-temp,out)
         return out
@@ -165,7 +165,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             Gammap=self.root_flip_rate
         #seems correct
         temp= 2*(1-a)*Gammap+a-ajr+2*self.kappa(m,ajr,Gamma)*(1-a)*(ajr-Gammap)
-        out=self.Qp_down(ajr,a,Gammap).dot(self.Q_power(m,ajr,Gamma))
+        out=self.R_down(ajr,a,Gammap).dot(self.Q_power(m,ajr,Gamma))
         out=a*out[1,0]+(1-a)*out[0,1]
         #print('down {}:'.format(m),temp-out)
         return out
@@ -185,15 +185,15 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==1 and down+m==0:
-            out=self.Q_power(k,aj=ajl).dot(self.Qp_up(aj=ajl))
+            out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl))
             out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==down==1:
-            out=self.Q_power(k,aj=ajl).dot(self.Qp_up(aj=ajl)).dot(self.Qp_down(aj=ajr)).dot(self.Q_power(m,aj=ajr))
+            out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl)).dot(self.R_down(aj=ajr)).dot(self.Q_power(m,aj=ajr))
             out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==0 and down==1:
-            out=self.Qp_down(aj=ajr).dot(self.Q_power(m,aj=ajr))
+            out=self.R_down(aj=ajr).dot(self.Q_power(m,aj=ajr))
             out = a*out[1,0]+(1-a)*out[0,1]
 
         elif down==0:
@@ -201,8 +201,8 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             out = ajr*out[1,0]+(1-ajr)*out[0,1]
         #
         # out=self.Q_power(k,aj=ajl).dot(
-        #     np.linalg.matrix_power(self.Qp_up(aj=ajl),up).dot(
-        #         np.linalg.matrix_power(self.Qp_down(aj=ajr),down).dot(
+        #     np.linalg.matrix_power(self.R_up(aj=ajl),up).dot(
+        #         np.linalg.matrix_power(self.R_down(aj=ajr),down).dot(
         #             self.Q_power(m,aj=ajr)
         #             )
         #         )
