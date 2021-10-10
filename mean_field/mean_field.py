@@ -248,7 +248,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         # return out
 
     def weight_bias(self,f2,fk):
-        ### TODO: Check this
+        ### TODO: Check this.
+        ## NOTE: Seems okay, probs typo in manuscript
+        L=self.pattern_len
         out=0.
         #of E(w_l/w_r)=1+epsilon return epsilon
         if fk==0:
@@ -258,6 +260,19 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                 out=f2*self.pattern_len
         else:
             out=-2*f2+f2*(self.pattern_len+2)*(1-(1-fk)**(self.pattern_len+1))/((self.pattern_len+1)*fk)
+            #out=-1+(self.pattern_len+f2/fk)*(1-(1-fk)**(self.pattern_len+1))/(self.pattern_len+1)
+            # def exp_dk(fk):
+            #     return (-1)**L*(1-fk)**(L+1)/((1-(1-fk)**L)*(L+1)*fk)*((1+fk/(1-fk))**(L+1))-(1-fk)**L/(1-(1-fk)**L)
+            #
+            # def exp_dk1(fk):
+            #     return ( 1-(1-fk)**(L+1)-(L+1)*fk*(1-fk)**L )/((L+1)*fk*(1-(1-fk)**L))
+            #
+            # def exp_dk1_unconditioned(fk):
+            #     return (1-(1-fk)**(L+1))/((L+1)*fk)
+            #
+            # exp_dk_dk1=exp_dk(fk)-exp_dk1(fk)
+            # exp_Ldk_dk1=(exp_dk(1-fk)+exp_dk1(1-fk))/(L+1)
+            # out=(1-(1-fk)**L)*(1-f2)*L*exp_dk_dk1+(1-fk**L)*f2*L*exp_Ldk_dk1+exp_dk1_unconditioned(fk)
         return out
 
     def root_cluster_eq_ratio(self):
@@ -421,8 +436,10 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
 
         elif self.root in neigh and self.nodes[node]['coordinates'][2]==0:
+            #print('mu=1')
             e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0))
             e_u=1+self.weight_bias(self.f(1,1,0,0,ajr=self.root_prior),self.f(self.h-2,0,0,0))
+            #print('right:',e_r,'up:',e_u)
             normalisation=1/(e_u*(self.c-1)+e_r+e_r*e_u)
             for neighbor in neigh:
                 if neighbor==self.root:
@@ -435,9 +452,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         elif self.root in neigh:
             coordinates=list(self.nodes[node]['coordinates'])
             coordinates[2]=0
-            print(coordinates)
             e=1+self.weight_bias(self.f(0,0,1,1,coordinates[4]),self.f(self.h-1,1,0,0,coordinates[4]))
-            print('e:',e)
             for neighbor in neigh:
                 if neighbor==self.root:
                         out.append( (node,neighbor, e/(self.c+e) ) )
@@ -454,12 +469,17 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                 coordinates[0]-=1
             e=1+self.weight_bias(self.f(*short_path,coordinates[-1]),self.f( *coordinates ))
             # if e>10:
+            # TODO: following line with tightness 0/1 suitable for unit test
             print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
             for neighbor in neigh:
                 if neighbor==toward_target:
                     out.append(( node,neighbor,e/(self.c+e)))
                 else:
                     out.append(( node,neighbor,1/(self.c+e) ))
+        try:
+            print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
+        except:
+            pass
 
         return out
 

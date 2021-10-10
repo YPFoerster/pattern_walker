@@ -550,7 +550,7 @@ def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
         #due to the recent rescaling idea
         gamma*=parent_prior
     if parent_prior==0:
-        return lambda state: gamma
+        return lambda state: (1-state)*gamma #to be checked
     else:
         def out_func(state):
             if state:
