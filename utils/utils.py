@@ -534,20 +534,23 @@ def mfpt(
                 inv_nlap[start_ndx,target_ndx]/np.sqrt(pi[start_ndx]*pi[target_ndx])
 
     if method=='Kirkland':
+        #fix node lists at the beginning for consistent transition matrices
         a,b=block_indices(G,G.target_node)
         nodes=list(G.nodes())
         alpha=[nodes.index(x) for x in a]
         beta=[nodes.index(x) for x in b]
         node_pair_inds={(node_1,node_2): (a.index(node_1), a.index(node_2)) for (node_1,node_2) in node_pairs }
         W=nx.to_numpy_array(G,nodelist=a+b,weight=weight_str)
+        #Block W
         W_alpha=W[:len(a),:len(a)]
         W_beta=W[-len(b):,-len(b):]
         W_ab=W[:len(alpha),-len(b):]
         W_ba=W[-len(b):,:len(a)]
         u=np.linalg.inv(np.eye(len(G)-1)-W[1:,1:])
+        #stationary probability
         pi=np.concatenate(([1],-np.matmul(-W[0,1:],u).T))
         pi=pi/np.sum(pi)
-        X=u[:len(a)-1,:len(a)-1]#np.linalg.inv(np.eye(len(a)-1)-W_alpha[1:,1:])
+        X=u[:len(a)-1,:len(a)-1]
         Y=u[-len(b):,-len(b):]
         h=-W_alpha[0,1]*X[0,:]
         H=np.matmul(np.ones((len(a)-1,1)),np.expand_dims(h,axis=1).T)
@@ -571,6 +574,7 @@ def mfpt(
         V_alpha[1:,0]=-delta/beta**2-1/beta*np.squeeze(FJ[:,0])
         V_alpha[1:,1:]=-1/beta*(FJ-FJ.T)
         V_alpha*=y
+        #MFPT matrix between nodes in alpha
         M=gamma_alpha*MQ+V_alpha
         for pair in node_pairs:
             start=node_pair_inds[pair][0]
@@ -578,6 +582,9 @@ def mfpt(
             out[pair]=M[ start,target ]
 
     if method=='grounded_Laplacian':
+        #default method
+        # TODO: If several pairs share the same target vtx, it would be best
+        # to collect those and calculate the inverse only one for this target
         for pair in node_pairs:
             node_order=[pair[0]]+list(set( list(G.nodes) )-set(pair)  )+[pair[1]]
             W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order)
@@ -587,7 +594,7 @@ def mfpt(
                     out[pair]=np.sum( np.linalg.inv( np.eye(len(G)-1)-W[:-1,:-1] ),axis=-1 )[0]
                 except np.linalg.LinAlgError:
                     out[pair]=np.nan
-                    
+
     if method=='eig':
         # NOTE: Not fixed yet.
         trans = nx.to_numpy_matrix(G,weight=weight_str).T #trans_{i,j}=Prob(i|j)= Prob(j->i)
@@ -680,6 +687,7 @@ def cluster_by_branch(G):
     return clusters
 
 def filter_nodes(G,attrstr,value):
+    ## TODO: see below
     return [node for node,attrdict in G.nodes.items() if attrdict[attrstr]==value]
     #should be identical to filter( lambda x: G.nodes[node][attrstr]==value, G.nodes)
 

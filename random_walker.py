@@ -308,7 +308,7 @@ class fullProbPatternWalker(patternWalker):
         sec_counter=1
         #we prefer to have the target in section numero 1
         target_part= nx.shortest_path(G,init_pos,target)[1]
-        # for head in filter( lambda x : target in nx.descendants(G,x),section_heads):
+
         G.nodes[target_part]['section']=sec_counter
         G.nodes[target_part]['depth']=1
         for descendant in nx.descendants(G,target_part):
@@ -423,6 +423,7 @@ def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
 
 def make_tree(lam,pattern_len,flip_rate,overlap,n_max=100,seed=None):
     #TODO Test this
+    # TODO: Still useful?
     def maker():
         H,root=utils.poisson_ditree(lam,n_max)
         target=np.random.choice(utils.leaves(H))

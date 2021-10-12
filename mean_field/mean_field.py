@@ -30,16 +30,11 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         Gamma=self.flip_rate
 
         if aj>0:
-#             out= np.array(
-#                     [[1-ajl*(1-(1-Gamma/ajl)**k),ajl*(1-(1-Gamma/ajl)**k)],
-#                              [(1-ajl)*(1-(1-Gamma/ajl)**k),1-(1-ajl)*(1-(1-Gamma/ajl)**k)]]
-#                     )
             out= np.array(
                     [[1-aj*(1-(1-Gamma)**k),aj*(1-(1-Gamma)**k)],
                              [(1-aj)*(1-(1-Gamma)**k),1-(1-aj)*(1-(1-Gamma)**k)]]
                     )
         elif aj==0:
-#             out=np.linalg.matrix_power(np.array( [[1-Gamma,Gamma],[Gamma,1-Gamma]] ),k)
             out=np.linalg.matrix_power(np.array( [[1,0],[Gamma,1-Gamma]] ),k)
         return out
 
@@ -61,10 +56,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                     [[(1-a)*(1-Gammap),1-(1-a)*(1-Gammap)],
                      [0.,1.]]
                     )
-            # out=np.array(
-            #         [[1-Gammap,Gammap],
-            #          [Gammap,1-Gammap]]
-            #         )
         return out
 
     def R_down(self,aj=None,a=None,Gammap=None):
@@ -85,98 +76,12 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                     [[1-Gammap,Gammap],
                      [0.,1.]]
                     )
-            # out=np.array(
-            #         [[1-Gammap,Gammap],
-            #          [Gammap,1-Gammap]]
-            #         )
         return out
 
     #for full overlap, the pattern distance rates at graph distance k from the target. Cases separated depending
     #whether the root needs to be involved
     #k includes the upward root link if applicable, m includes the downwards root link, if applicable
     #so the sum of k and m has to be the graph distance
-
-    def kappa(self,k,ajl=None,Gamma=None):
-        if ajl is None:
-            ajl=self.high_child_prior
-        if Gamma is None:
-            Gamma=self.flip_rate
-        out=(1-(1-Gamma)**k)
-        return out
-
-    def f_left(self,k,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        if ajl is None:
-            ajl=self.high_child_prior
-        if Gamma is None:
-            Gamma=self.flip_rate
-
-        #no root involved
-        #checked and found to be correct
-        temp=2*ajl*(1-ajl)*(1-(1-Gamma)**k)
-        out=self.Q_power(k,ajl,Gamma)
-        out=ajl*out[1,0]+(1-ajl)*out[0,1]
-        #print('left:',temp-out)
-        return out
-
-
-    def f_up(self,k,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        if ajl is None:
-            ajl=self.high_child_prior
-        if a is None:
-            a=self.root_prior
-        if Gamma is None:
-            Gamma=self.flip_rate
-        if Gammap is None:
-            Gammap=self.root_flip_rate
-
-        #last edge goes up to the root
-        #checked and found to be correct
-        temp= 2*(1-a)*Gammap+a-ajl+2*(1-(1-Gamma)**(k))*(1-a)*ajl*(1-Gammap/ajl)
-        out=self.Q_power(k,ajl,Gamma).dot(self.R_up(ajl,a,Gammap))
-        out=ajl*out[1,0]+(1-ajl)*out[0,1]
-        #print('up:',temp-out)
-        return out
-
-
-
-    def f_up_down(self,k,m=1,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        if ajl is None:
-            ajl=self.high_child_prior
-        if ajr is None:
-            ajr=self.high_child_prior
-        if a is None:
-            a=self.root_prior
-        if Gamma is None:
-            Gamma=self.flip_rate
-        if Gammap is None:
-            Gammap=self.root_flip_rate
-
-        #tested and seems correct
-        temp=1-(1-a)*((1-Gammap)**2+Gammap**2)-\
-            1/a*(ajl-(1-a)*Gammap)*(ajr-(1-a)*Gammap)-(a-ajr+(1-a)*Gammap)*(1-ajl-(1-a)*(1-Gammap))/a+\
-            2*self.kappa(k,ajl)*(1-a)*(ajl-Gammap)*(ajr-Gammap)/a+\
-            2*self.kappa(m,ajr)*(1-self.kappa(k,ajl))*(1-a)*(ajl-Gammap)*(ajr-Gammap)/a
-        #last two edges go over the root, up and then down from leftmost to some branch on the right
-        out=self.Q_power(k,ajl,Gamma).dot(self.R_up(ajl,a,Gammap).dot(self.R_down(ajr,a,Gammap).dot(self.Q_power(m,ajr,Gamma))))
-        out=ajl*out[1,0]+(1-ajl)*out[0,1]
-        #print('fud:',out-temp,out)
-        return out
-
-    def f_down(self,m,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        if ajr is None:
-            ajr=self.high_child_prior
-        if a is None:
-            a=self.root_prior
-        if Gamma is None:
-            Gamma=self.flip_rate
-        if Gammap is None:
-            Gammap=self.root_flip_rate
-        #seems correct
-        temp= 2*(1-a)*Gammap+a-ajr+2*self.kappa(m,ajr,Gamma)*(1-a)*(ajr-Gammap)
-        out=self.R_down(ajr,a,Gammap).dot(self.Q_power(m,ajr,Gamma))
-        out=a*out[1,0]+(1-a)*out[0,1]
-        #print('down {}:'.format(m),temp-out)
-        return out
 
     def f(self,k,up=0,down=0,m=0,mu=2,ajl=None,ajr=None):
         if ajl is None:
@@ -207,52 +112,13 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         elif down==0:
             out=self.Q_power(m,aj=ajr)
             out = ajr*out[1,0]+(1-ajr)*out[0,1]
-        #
-        # out=self.Q_power(k,aj=ajl).dot(
-        #     np.linalg.matrix_power(self.R_up(aj=ajl),up).dot(
-        #         np.linalg.matrix_power(self.R_down(aj=ajr),down).dot(
-        #             self.Q_power(m,aj=ajr)
-        #             )
-        #         )
-        #     )
 
         return out
-        # if k+up>0:
-        #     out = ajl*out[1,0]+(1-ajl)*out[0,1]
-        # elif down>0:
-        #     out = a*out[1,0]+(1-a)*out[0,1]
-        # else:
-        #     out = ajl*out[1,0]+(1-ajl)*out[0,1]
-        #return out
-        # out=0.
-        #
-        #
-        # try:
-        #     if k+m+up+down==0:
-        #         out=0.
-        #     elif m+down==0:
-        #         if up==0:
-        #             out=self.f_left(k,**kwargs)
-        #         else:
-        #             out=self.f_up(k,**kwargs)
-        #     elif k+up==0:
-        #         if down==0:
-        #             out=self.f_left(k,ajl=ajr,**kwargs)
-        #         else:
-        #             out=self.f_down(m,**kwargs)
-        #     else:
-        #         out=self.f_up_down(k,m,**kwargs)
-        #
-        # except ZeroDivisionError:
-        #     pass
-        # return out
 
     def weight_bias(self,f2,fk,fk2):
-        ### TODO: Check this.
-        ## NOTE: Seems okay, probs typo in manuscript
+        #of E(w_l/w_r)=1+epsilon return epsilon
         L=self.pattern_len
         out=0.
-        #of E(w_l/w_r)=1+epsilon return epsilon
         if fk==0:
             if f2==0:
                 out=0.
@@ -262,33 +128,13 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             dk1_inv_exp=(1-(1-fk)**(self.pattern_len+1))/((self.pattern_len+1)*fk)
             out=-1+(1+L*f2*fk2/(1-fk)-fk2*(1-fk-f2)/(fk*(1-fk)))*dk1_inv_exp+fk2*(1-fk-f2)/(fk*(1-fk))
 
-            #out=-2*f2+f2*(self.pattern_len+2)*(1-(1-fk)**(self.pattern_len+1))/((self.pattern_len+1)*fk)
-
-            #out=-1+(self.pattern_len+f2/fk)*(1-(1-fk)**(self.pattern_len+1))/(self.pattern_len+1)
-            # def exp_dk(fk):
-            #     return (-1)**L*(1-fk)**(L+1)/((1-(1-fk)**L)*(L+1)*fk)*((1+fk/(1-fk))**(L+1))-(1-fk)**L/(1-(1-fk)**L)
-            #
-            # def exp_dk1(fk):
-            #     return ( 1-(1-fk)**(L+1)-(L+1)*fk*(1-fk)**L )/((L+1)*fk*(1-(1-fk)**L))
-            #
-            # def exp_dk1_unconditioned(fk):
-            #     return (1-(1-fk)**(L+1))/((L+1)*fk)
-            #
-            # exp_dk_dk1=exp_dk(fk)-exp_dk1(fk)
-            # exp_Ldk_dk1=(exp_dk(1-fk)+exp_dk1(1-fk))/(L+1)
-            # out=(1-(1-fk)**L)*(1-f2)*L*exp_dk_dk1+(1-fk**L)*f2*L*exp_Ldk_dk1+exp_dk1_unconditioned(fk)
         return out
 
     def root_cluster_eq_ratio(self):
-        #if ajl is None:
         ajl=self.high_child_prior
-        #if ajr is None:
         ajr=self.high_child_prior
-        #if a is None:
         a=self.root_prior
-        #if Gamma is None:
         Gamma=self.flip_rate
-        #if Gammap is None:
         Gammap=self.root_flip_rate
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
@@ -305,15 +151,10 @@ class MF_patternWalker(rw.fullProbPatternWalker):
     def sub_root_cluster_eq_ratio(self):
         #eq prob of cluster divided by eq prob of articulation pt, here the node under the root
         #just under the root things are a bit messy, hence the following epsilons
-        #if ajl is None:
         ajl=self.high_child_prior
-        #if ajr is None:
         ajr=self.high_child_prior
-        #if a is None:
         a=self.root_prior
-        #if Gamma is None:
         Gamma=self.flip_rate
-        #if Gammap is None:
         Gammap=self.root_flip_rate
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
 
@@ -332,15 +173,10 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def eq_ratio(self,k):
         #eq prob of cluster divided by eq prob of articulation pt at height k over target
-        #if ajl is None:
         ajl=self.high_child_prior
-        #if ajr is None:
         ajr=self.high_child_prior
-        #if a is None:
         a=self.root_prior
-        #if Gamma is None:
         Gamma=self.flip_rate
-        #if Gammap is None:
         Gammap=self.root_flip_rate
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
 
@@ -357,15 +193,10 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        #if ajl is None:
         ajl=self.high_child_prior
-        #if ajr is None:
         ajr=self.high_child_prior
-        #if a is None:
         a=self.root_prior
-        #if Gamma is None:
         Gamma=self.flip_rate
-        #if Gammap is None:
         Gammap=self.root_flip_rate
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #just under the root things are a bit messy, hence the following epsilons
@@ -440,10 +271,8 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
 
         elif self.root in neigh and self.nodes[node]['coordinates'][2]==0:
-            #print('mu=1')
             e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
             e_u=1+self.weight_bias(self.f(1,1,0,0,ajr=self.root_prior),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0,ajr=self.root_prior))
-            #print('right:',e_r,'up:',e_u)
             normalisation=1/(e_u*(self.c-1)+e_r+e_r*e_u)
             for neighbor in neigh:
                 if neighbor==self.root:
@@ -472,7 +301,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             else:
                 coordinates[0]-=1
             e=1+self.weight_bias(self.f(*short_path,coordinates[-1]),self.f( *coordinates ),self.f( *[coordinates[i]+short_path[i] for i in range(4)] ))
-            # if e>10:
             # TODO: following line with tightness 0/1 suitable for unit test
             #print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
             for neighbor in neigh:
@@ -480,11 +308,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                     out.append(( node,neighbor,e/(self.c+e)))
                 else:
                     out.append(( node,neighbor,1/(self.c+e) ))
-        # try:
-        #     print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
-        # except:
-        #     pass
-
         return out
 
 
@@ -506,20 +329,15 @@ class overlap_MF_patternWalker(MF_patternWalker):
             max(0,-i*int(self.pattern_len/self.c)+self.pattern_len-2*self.overlap)
             for i in range(2,c+1)])
         self.O_hh=np.sum(self.O_list)/(self.pattern_len*(self.c-1))
-        self.O_ll=np.sum(self.U_list)/(self.pattern_len*(self.c-1))#1+self.O_hh-2*(2*self.overlap/self.pattern_len+1/self.c)  #max(0,1-(2/self.c+4*self.overlap/self.pattern_len))
+        self.O_ll=np.sum(self.U_list)/(self.pattern_len*(self.c-1))
         self.O_hl=(1-self.O_hh-self.O_ll)/2
         self.O_lh=self.O_hl
 
     def f(self,k,up,down,m,mu=2,**kwargs):
-        #if ajl is None:
         a_h=self.high_child_prior
-        #if ajr is None:
         a_l=self.low_child_prior
-        #if a is None:
         a=self.root_prior
-        #if Gamma is None:
         Gamma=self.flip_rate
-        #if Gammap is None:
         Gammap=self.root_flip_rate
 
         out=0.
@@ -528,22 +346,34 @@ class overlap_MF_patternWalker(MF_patternWalker):
         if up==1 and down==0:
             f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a)
             f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a)
-            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
 
         elif up==0 and down==1:
             f_h=MF_patternWalker.f(self,*coordinates,ajl=a,ajr=a_h)
             f_l=MF_patternWalker.f(self,*coordinates,ajl=a,ajr=a_l)
-            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
 
         elif up==0 and down+m==0:
             f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
             f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
-            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+            f_l*(
+                self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                )/self.pattern_len
 
         elif up+k==0 and down==0:
             f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
             f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
-            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
 
         else:
             f_hh=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
@@ -553,113 +383,123 @@ class overlap_MF_patternWalker(MF_patternWalker):
             if mu==0:
                 out=self.O_hh*f_hh+self.O_lh*f_lh+self.O_hl*f_hl+self.O_ll*f_ll
             else:
-                out=self.O_list[mu-2]/self.pattern_len*f_hh+(self.pattern_len-self.U_list[mu-2]-self.O_list[mu-2])/self.pattern_len*(f_hl+f_lh)/2+self.U_list[mu-2]/self.pattern_len*f_ll
+                out=self.O_list[mu-2]/self.pattern_len*f_hh+\
+                    (self.pattern_len-self.U_list[mu-2]-self.O_list[mu-2])/self.pattern_len*\
+                    (f_hl+f_lh)/2+self.U_list[mu-2]/self.pattern_len*f_ll
 
-        #
-        # if down+m==0 or k+up==0:
-        #
-        #     f_h=MF_patternWalker.f(self,*coordinates,ajl=self.high_child_prior,ajr=self.high_child_prior)
-        #     f_l=MF_patternWalker.f(self,*coordinates,ajl=self.low_child_prior,ajr=self.low_child_prior)
-        #     out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
-        # # elif k+up==0:
-        # #     f_h=MF_patternWalker.f(self,*coordinates,ajl=self.high_child_prior,ajr=self.high_child_prior)
-        # #     f_l=MF_patternWalker.f(self,0,up=0,down=0,m=m,ajl=self.low_child_prior,ajr=self.low_child_prior)
-        # #     out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
-        # else:
-        #     f_hh=MF_patternWalker.f(self,*coordinates,ajl=self.high_child_prior,ajr=self.high_child_prior)
-        #     f_hl=MF_patternWalker.f(self,*coordinates,ajl=self.high_child_prior,ajr=self.low_child_prior)
-        #     f_lh=MF_patternWalker.f(self,*coordinates,ajl=self.low_child_prior,ajr=self.high_child_prior)
-        #     f_ll=MF_patternWalker.f(self,*coordinates,ajl=self.low_child_prior,ajr=self.low_child_prior)
-        #     out=self.O_hh*f_hh+self.O_hl*f_hl+self.O_lh*f_lh+self.O_ll*f_ll
-
-        return out
-
-    def f_left(self,k,**kwargs):
-        f_h=MF_patternWalker.f(self,k,up=0,down=0,m=0,ajl=self.high_child_prior)
-        f_l=MF_patternWalker.f(self,k,up=0,down=0,m=0,ajl=self.low_child_prior)
-        print(f_h,f_l)
-        out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
-        return out
-
-    def f_up(self,k,**kwargs):
-        f_h=MF_patternWalker.f(self,k,up=1,down=0,m=0,ajl=self.high_child_prior)
-        f_l=MF_patternWalker.f(self,k,up=1,down=0,m=0,ajl=self.low_child_prior)
-        out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
-        return out
-
-    def f_up_down(self,k,m=1,**kwargs):
-        f_hh=MF_patternWalker.f(self,k,up=1,down=1,m=m,ajl=self.high_child_prior,ajr=self.high_child_prior)
-        f_hl=MF_patternWalker.f(self,k,up=1,down=1,m=m,ajl=self.high_child_prior,ajr=self.low_child_prior)
-        f_lh=MF_patternWalker.f(self,k,up=1,down=1,m=m,ajl=self.low_child_prior,ajr=self.high_child_prior)
-        f_ll=MF_patternWalker.f(self,k,up=1,down=1,m=m,ajl=self.low_child_prior,ajr=self.low_child_prior)
-        #print(f_hh,f_hl,f_lh,f_ll)
-        out=self.O_hh*f_hh+self.O_hl*f_hl+self.O_lh*f_lh+self.O_ll*f_ll
-        #print(MF_patternWalker.f_up_down(self,k,m,ajl=self.high_child_prior,ajr=self.high_child_prior),out)
-        return out
-
-    def f_down(self,m,**kwargs):
-        f_h=MF_patternWalker.f(self,0,up=0,down=0,m=m,ajr=self.high_child_prior)
-        f_l=MF_patternWalker.f(self,0,up=0,down=0,m=m,ajr=self.low_child_prior)
-        out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+f_l*(self.pattern_len-self.pattern_len/self.c-2*self.overlap)/self.pattern_len
         return out
 
     def root_cluster_eq_ratio(self):
-        #if ajl is None:
         ajl=self.high_child_prior
-        #if ajr is None:
         ajr=self.high_child_prior
-        #if a is None:
         a=self.root_prior
-        #if Gamma is None:
         Gamma=self.flip_rate
-        #if Gammap is None:
         Gammap=self.root_flip_rate
-        kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
+        kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr,\
+            'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
 
-        e_0=np.prod([(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),self.f(self.h-1,1,1,0,mu))) for mu in range(2,self.c+1)])
-        normalisation=1/(e_0+np.sum([ e_0/(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),self.f(self.h-1,1,1,0,mu))) for mu in range(2,self.c+1) ]))
-        e_r_list=[ e_0/(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),self.f(self.h-1,1,1,0,mu))) for mu in range(2,self.c+1) ]
-        bias_dict={mu: [e_r_list[mu-2], self.weight_bias(self.f(0,0,1,1,mu,ajl=a),self.f(self.h-1,1,0,0,mu,ajr=a),self.f(self.h-1,1,1,1,mu,ajr=a)) ]+[ self.weight_bias( self.f(0,0,0,2,mu),self.f(self.h-1,1,1,m,mu),self.f(self.h-1,1,1,m+2,mu) )  for m in range(self.h-1)] for mu in range(2,self.c+1)}
-        print(bias_dict)
+        e_0=np.prod([
+            (1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),\
+                self.f(self.h-1,1,1,0,mu)))
+            for mu in range(2,self.c+1)
+            ])
+        normalisation=1/(e_0+np.sum([
+            e_0/(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),\
+                self.f(self.h-1,1,1,0,mu)))
+            for mu in range(2,self.c+1)
+            ]))
+        e_r_list=[
+            e_0/(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),\
+                self.f(self.h-1,1,1,0,mu)))
+            for mu in range(2,self.c+1)
+            ]
+        bias_dict={
+            mu: [e_r_list[mu-2], self.weight_bias(self.f(0,0,1,1,mu,ajl=a),\
+                self.f(self.h-1,1,0,0,mu,ajr=a),self.f(self.h-1,1,1,1,mu,ajr=a))]\
+                +[
+                    self.weight_bias(
+                        self.f(0,0,0,2,mu),\
+                        self.f(self.h-1,1,1,m,mu),\
+                        self.f(self.h-1,1,1,m+2,mu)
+                    )
+                for m in range(self.h-1)
+                ]
+            for mu in range(2,self.c+1)
+            }
         out=1+np.sum([
                 bias_dict[mu][0]*normalisation*\
                 (
                 np.sum([
-                self.c**(l-1)*(self.c+1+bias_dict[mu][l])/np.prod([1+bias_dict[mu][k] for k in range(1,l+1)])
-                for l in range(1,self.h)])+\
-                self.c**(self.h-1)/np.prod([1+bias_dict[mu][k] for k in range(1,self.h)])
+                    self.c**(l-1)*(self.c+1+bias_dict[mu][l])/\
+                        np.prod([1+bias_dict[mu][k] for k in range(1,l+1)])
+                for l in range(1,self.h)
+                ])+\
+                self.c**(self.h-1)/\
+                    np.prod([1+bias_dict[mu][k] for k in range(1,self.h)])
                 )
-            for mu in range(2,self.c+1) ])
-        #
-        # out=1+ (self.c-1)/(self.c+bias_list[0])*\
-        #     (
-        #     np.sum([
-        #             self.c**(l-1)*(self.c+1+bias_list[l])/np.prod( [1+bias_list[k] for k in range(1,l+1)])
-        #             for l in range(1,self.h) ])+\
-        #     self.c**(self.h-1)/np.prod( [1+bias_list[k] for k in range(1,self.h)])
-        #     )
+            for mu in range(2,self.c+1)
+            ])
+
         return out
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        #if ajl is None:
         ajl=self.high_child_prior
-        #if ajr is None:
         ajr=self.high_child_prior
-        #if a is None:
         a=self.root_prior
-        #if Gamma is None:
         Gamma=self.flip_rate
-        #if Gammap is None:
         Gammap=self.root_flip_rate
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #just under the root things are a bit messy, hence the following epsilons
-        e_root=np.prod([(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),self.f(self.h-1,1,1,0,mu))) for mu in range(2,self.c+1)])
-        e_root=e_root/(e_root+np.sum([ e_root/(1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),self.f(self.h-1,1,1,0,mu))) for mu in range(2,self.c+1) ]))
+        e_root=np.prod([
+                (1+self.weight_bias(
+                    self.f(0,1,1,0,mu),\
+                    self.f(self.h-1,0,0,0,mu),\
+                    self.f(self.h-1,1,1,0,mu)
+                    )
+                )
+            for mu in range(2,self.c+1)
+            ])
+        e_root=e_root/(e_root+np.sum([
+                e_root/(1+self.weight_bias(
+                    self.f(0,1,1,0,mu),\
+                    self.f(self.h-1,0,0,0,mu),\
+                    self.f(self.h-1,1,1,0,mu)
+                    )
+                )
+            for mu in range(2,self.c+1)
+            ]))
 
-        e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
-        e_u=1+self.weight_bias(self.f(1,1,0,0,ajr=a),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0,ajr=a))
-        cord_weight_list = [ (1+self.weight_bias(self.f(2,0,0,0),self.f(k,0,0,0),self.f(k+2,0,0,0)))/(self.c+1+self.weight_bias(self.f(2,0,0,0),self.f(k,0,0,0),self.f(k+2,0,0,0))) for k in range(0,self.h-2) ] + [ (e_r)*(e_u)/( (self.c-1+e_r)*(e_u)+e_u ) ] + [ e_root ]
-        eq_ratio_list = [ self.eq_ratio(k) for k in range(1,self.h-1) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
-        out = np.sum(np.sum( [[eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)] for i in range(self.h)] ))
+        e_r=1+self.weight_bias(
+            self.f(2,0,0,0),\
+            self.f(self.h-2,0,0,0),\
+            self.f(self.h,0,0,0)
+            )
+        e_u=1+self.weight_bias(
+            self.f(1,1,0,0,ajr=a),\
+            self.f(self.h-2,0,0,0),\
+            self.f(self.h-1,1,0,0,ajr=a)
+            )
+        cord_weight_list = [
+                (1+self.weight_bias(
+                    self.f(2,0,0,0),\
+                    self.f(k,0,0,0),\
+                    self.f(k+2,0,0,0))
+                    )/(self.c+1+self.weight_bias(
+                        self.f(2,0,0,0),\
+                        self.f(k,0,0,0),\
+                        self.f(k+2,0,0,0))
+                        )
+            for k in range(0,self.h-2)
+            ] + \
+            [ (e_r)*(e_u)/( (self.c-1+e_r)*(e_u)+e_u ) ] +\
+            [ e_root ]
+        eq_ratio_list = [ self.eq_ratio(k) for k in range(1,self.h-1) ]+\
+            [self.sub_root_cluster_eq_ratio()]+\
+            [ self.root_cluster_eq_ratio() ]
+        out = np.sum(np.sum([
+                [eq_ratio_list[k]/cord_weight_list[k] for k in range(i,self.h)]
+            for i in range(self.h)
+            ] ))
+            
         return out
