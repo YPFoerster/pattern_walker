@@ -14,7 +14,7 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'fullProbPatternWalker', 'make_tree',
+    'walker', 'patternWalker', 'fullProbPatternWalker', 'patternStats', 'make_tree',
     'mutate_pattern'
     ]
 
@@ -410,9 +410,9 @@ class patternStats(fullProbPatternWalker):
             for part in self.parts
             ]
 
-        self.c=nx.successors(G,init_pos)
+        self.c=len(list(self.successors(init_pos)))
         self.h=nx.shortest_path_length(
-            G,init_pos,leaves[0]
+            G,init_pos,self.leaves[0]
             )
         #offset of marginal expectations from extreme values
         self.beta_l=self.low_child_prior-(1-self.root_prior)*self.root_flip_rate
@@ -420,9 +420,17 @@ class patternStats(fullProbPatternWalker):
         self.beta_h=(1-self.root_prior)*self.root_flip_rate+self.root_prior-\
             self.high_child_prior
 
-    def mean_part_dist(self,L=self.pattern_len,c=self.c,h=self.h,\
-        a=self.roor_prior,Gammap=self.root_flip_rate,Gamma=self.flip_rate,\
-        Delta=self.overlap,beta_h=self.beta_h,beta_l=self.beta_l):
+    def expected_part_dist(self):
+        L=self.pattern_len
+        c=self.c
+        h=self.h
+        a=self.root_prior
+        Gammap=self.root_flip_rate
+        Gamma=self.flip_rate
+        Delta=self.overlap
+        beta_h=self.beta_h
+        beta_l=self.beta_l
+
         if beta_h==0:
             if Delta<=L*(c-2)/(2*c):
                 return 2*L*Gammap*(1-Gammap)*\
@@ -445,22 +453,51 @@ class patternStats(fullProbPatternWalker):
                 4*Delta*(2/a*(a-beta_h)*(beta_h+beta_l)-a-beta_l+beta_h)
 
 
-    def vertical_rate(self,a_j,Gamma=self.flip_rate,Delta=self.overlap):
-        return 2*a_j*(1-a_j)*(1-(1-Gamma)**float(h-1))
+    def root_to_part_rate(self,a_j,Gammap):
+        a=self.root_prior
+        return 2*(1-a)*Gammap+a-a_j
 
+    def expected_root_to_part_distance(self):
+        L=self.pattern_len
+        c=self.c
+        h=self.h
+        a=self.root_prior
+        Gammap=self.root_flip_rate
+        Gamma=self.flip_rate
+        Delta=self.overlap
+        beta_h=self.beta_h
+        beta_l=self.beta_l
 
-    def expected_vertical_distance(self,L=self.pattern_len,c=self.c,h=self.h,\
-        a=self.roor_prior,Gammap=self.root_flip_rate,Gamma=self.flip_rate,\
-        Delta=self.overlap,beta_h=self.beta_h,beta_l=self.beta_l):
         a_l=(1-a)*Gammap+beta_l
         a_h=(1-a)*Gammap+a
-        return self.vertical_rate(a_h,Gamma,Delta)*(L/c+2*Delta)+\
-            self.vertical_rate(a_l,Gamma,Delta)*(L-L/c-2*Delta)
+        return self.root_to_part_rate(a_h,Gammap)*(L/c+2*Delta)+\
+            self.root_to_part_rate(a_l,Gammap)*(L-L/c-2*Delta)
+
+
+    def vertical_rate(self,a_j,Gamma,h):
+        return 2*a_j*(1-a_j)*(1-(1-Gamma)**float(h-1))
+
+    def expected_vertical_distance(self):
+        L=self.pattern_len
+        c=self.c
+        h=self.h
+        a=self.root_prior
+        Gammap=self.root_flip_rate
+        Gamma=self.flip_rate
+        Delta=self.overlap
+        beta_h=self.beta_h
+        beta_l=self.beta_l
+
+        a_l=(1-a)*Gammap+beta_l
+        a_h=(1-a)*Gammap+a
+        return self.vertical_rate(a_h,Gamma,h)*(L/c+2*Delta)+\
+            self.vertical_rate(a_l,Gamma,h)*(L-L/c-2*Delta)
 
     def sample_distances(self,number_of_samples):
         part_mean_distances=np.zeros(number_of_samples)
         vertical_mean_distances=np.zeros(number_of_samples)
-        for iter in number_of_samples:
+        root_part_mean_distances=np.zeros(number_of_samples)
+        for iter in range(number_of_samples):
             part_mean_distances[iter]=np.mean([
                     np.linalg.norm(self.nodes[self.parts[n1]]['pattern']-\
                     self.nodes[self.parts[n1+1]]['pattern'],ord=1)
@@ -468,15 +505,20 @@ class patternStats(fullProbPatternWalker):
                 ] )
             vertical_mean_dist=np.mean( [
                     [
-                        np.linalg.norm(self.nodes[self.parts[sec_ndx]]['pattern']\
-                        -self.nodes[leaf]['pattern'],ord=1)
+                        np.linalg.norm(self.nodes[self.parts[sec_ndx]]['pattern']-\
+                        self.nodes[leaf]['pattern'],ord=1)
                     for leaf in self.part_leaves[sec_ndx]
                     ]
                 for sec_ndx in range(self.c)
                 ] )
             vertical_mean_distances[iter]=vertical_mean_dist
-            G.reset_patterns()
-        return part_mean_distances,vertical_mean_distances
+            root_part_mean_distances[iter]=np.mean([
+                    np.linalg.norm( self.nodes[self.parts[sec_ndx]]['pattern']-\
+                    self.nodes[self.root]['pattern'],ord=1)
+                for sec_ndx in range(self.c)
+                ])
+            self.reset_patterns()
+        return part_mean_distances,vertical_mean_distances,root_part_mean_distances
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b."""
