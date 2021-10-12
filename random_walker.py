@@ -14,7 +14,7 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'fullProbPatternWalker', 'sectionedPatternWalker', 'SRPWalker', 'make_tree',
+    'walker', 'patternWalker', 'fullProbPatternWalker', 'make_tree',
     'mutate_pattern'
     ]
 
@@ -286,7 +286,7 @@ class fullProbPatternWalker(patternWalker):
     def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,search_for=None):
         target=None
         if search_for is None:
-            #In case a seed is fixed, this needs to be done first, otherwise
+            #In case a seed is fixed, this needs to be done first,
             #otherwise the target changes with the overlap.
             target=np.random.choice(utils.leaves(G))
         elif search_for in G.nodes:
@@ -302,6 +302,7 @@ class fullProbPatternWalker(patternWalker):
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
 
     def set_position_numbers(self,G,init_pos,target):
+        ## TODO: rename 'section' to 'part'
         G.nodes[init_pos]['section']=0 #descendant from which child of root?
         G.nodes[init_pos]['depth']=0 #distance from root
         sec_counter=1
@@ -389,145 +390,6 @@ class fullProbPatternWalker(patternWalker):
         if self.coordinates_set:
             self.set_coordinates()
 
-class sectionedPatternWalker(patternWalker):
-    """
-    Example:
-    >>> from networkx.generators.classic import balanced_tree
-    >>> G=balanced_tree(1,10,create_using=nx.DiGraph)
-    >>> root=0
-    >>> w=sectionedPatternWalker(G,root,pattern_len=20,flip_rate=0.005,sections=0.5)
-    >>> 0<= w.num_pattern_duplicates()
-    True
-    >>> w.set_weights()
-    >>> for i in range(20):
-    ...     w.step()
-    >>> len(w.trace)
-    21
-    >>> w.reset_walker()
-    >>> w.trace
-    [0]
-    >>> w.trace==[w.x]
-    True
-    """
-
-    def __init__(self,G,init_pos,pattern_len,flip_rate,sections,metric=None,search_for=None):
-        target=None
-        if search_for is None:
-            #In case a seed is fixed, this needs to be done first, otherwise
-            #otherwise the target changes with the overlap.
-            target=np.random.choice(utils.leaves(G))
-        elif search_for in G.nodes:
-            target=search_for
-
-        self.sections=self.sections_prep(G,init_pos,pattern_len,sections)
-        self.num_sections=len(self.sections)
-        full_pattern_len=self.sections[-1][-1]-self.sections[0][0]
-        super(sectionedPatternWalker,self).__init__(G,init_pos,full_pattern_len,flip_rate,metric,target)
-
-
-    def set_patterns(self):
-        """
-        THIS METHOD OVERLOADS THE METHOD OF THE SAME NAME IN PatternWalker.
-        Assigns a binary string to every node in the graph, successively by
-        generation/level. A pattern/string is generated based on its parent
-        string by the function mutate_pattern.
-        """
-
-        queue=list(self.successors(self.root))
-        self.nodes[self.root]['pattern']=list(np.random.randint(
-                                                        0,2,self.pattern_len
-                                                        ))
-        last_patterned_gen=[self.root]
-
-        while len(queue)>0:
-            for node in queue:
-                pattern=self.nodes[list(self.predecessors(node))[0]]['pattern']
-                self.nodes[node]['pattern']=mutate_pattern(
-                                                pattern,self.flip_rate
-                                                )
-            queue=[suc for node in queue for suc in self.successors(node)]
-
-        main_brances=list(self.successors(self.root))
-        for i in range(self.num_sections):
-            self.nodes[main_brances[i]]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[main_brances[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
-            #self.nodes[main_brances[i]]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
-            #self.nodes[main_brances[i]]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
-
-            for node in nx.descendants(self,main_brances[i]):
-                self.nodes[node]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
-                #self.nodes[node]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
-                #self.nodes[node]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
-
-    def sections_prep(self,G,init_pos,pattern_len,sections):
-        out=[]
-        if isinstance(sections, list):
-            # TODO: More checks recommended to ensure that number of sections is compatible with the hierarchy,that endpoints are included and that we don't overshoot.
-            if isinstance(sections[0],int):
-                for ind in range(len(sections)-1):
-                    out.append( (sections[ind],sections[ind+1]) )
-            elif isinstance(sections[0], tuple):
-                out=sections
-
-            out[-1]=(out[-1][0],pattern_len)
-            sections_compatible=len(list(G.successors(init_pos)))-len(out)
-            if sections_compatible>0:
-                out=out+sections_compatible*[out[-1]]
-            elif sections_compatible<0:
-                out=out[:sections_compatible]
-                out[-1]=(out[-1][0],pattern_len)
-        elif isinstance(sections,float):
-            out=sections_by_overlap(pattern_len,len(list(G.successors(init_pos))),sections)
-        return out
-
-
-class SRPWalker(sectionedPatternWalker):
-    """
-    Example:
-    >>> from networkx.generators.classic import balanced_tree
-    >>> G=balanced_tree(1,10,create_using=nx.DiGraph)
-    >>> root=0
-    >>> w=SRPWalker(G,root,pattern_len=20,flip_rate=0.005,sections=0.5,num_refs=2)
-    >>> 0<= w.num_pattern_duplicates()
-    True
-    >>> w.set_weights()
-    >>> for i in range(20):
-    ...     w.step()
-    >>> len(w.trace)
-    21
-    >>> w.reset_walker()
-    >>> w.trace
-    [0]
-    >>> w.trace==[w.x]
-    True
-    >>> w.reset_patterns()
-    >>> w.references[0] in w.edges()
-    True
-    """
-    def __init__(self,G,init_pos,pattern_len,flip_rate,sections,num_refs,metric=None,search_for=None):
-        target=None
-        if search_for is None:
-            #In case a seed is fixed, this needs to be done first, otherwise
-            #otherwise the target changes with the overlap.
-            target=np.random.choice(utils.leaves(G))
-        elif search_for in G.nodes:
-            target=search_for
-        self.references=[np.random.choice(G.nodes(),2) for _ in range(num_refs)]
-        super(SRPWalker,self).__init__(G,init_pos,pattern_len,flip_rate,sections,metric,target)
-        self.add_edges_from(self.references)
-
-    def reset_patterns(self):
-        """
-        Like set_patterns, but first resets edge data, because set_weights
-        introduces edges blurring the hierarchy on that set_patterns relies.
-        """
-        self.clear()
-        self.add_edges_from(self.hierarchy_backup.edges())
-        self.set_patterns()
-        self.set_target(self.target_node)
-        self.add_edges_from(self.references)
-        self.set_weights()
-
-
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b."""
     return np.linalg.norm(a-b,ord=1)
@@ -558,12 +420,6 @@ def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
             else:
                 return gamma
         return out_func
-
-def sections_by_overlap(pattern_len,num_sections,frac_overlap):
-    #TODO Test this
-    overlap=int(frac_overlap*pattern_len)
-    sections=[ ( i*(pattern_len-overlap),i*(pattern_len-overlap)+pattern_len ) for i in range(num_sections)]
-    return sections
 
 def make_tree(lam,pattern_len,flip_rate,overlap,n_max=100,seed=None):
     #TODO Test this
