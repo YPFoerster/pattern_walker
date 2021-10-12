@@ -403,9 +403,16 @@ class patternStats(fullProbPatternWalker):
             G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,\
                 overlap,flip_rate,root_flip_rate,metric=None,search_for=None
                 )
+        self.leaves=utils.leaves(G)
+        self.parts=list(nx.neighbors(G,init_pos))
+        self.part_leaves=[
+            [node for node in  nx.descendants(G,part) if node in self.leaves]
+            for part in self.parts
+            ]
+
         self.c=nx.successors(G,init_pos)
         self.h=nx.shortest_path_length(
-            G,init_pos,utils.leaves(G)[0]
+            G,init_pos,leaves[0]
             )
         #offset of marginal expectations from extreme values
         self.beta_l=self.low_child_prior-(1-self.root_prior)*self.root_flip_rate
@@ -449,6 +456,27 @@ class patternStats(fullProbPatternWalker):
         a_h=(1-a)*Gammap+a
         return self.vertical_rate(a_h,Gamma,Delta)*(L/c+2*Delta)+\
             self.vertical_rate(a_l,Gamma,Delta)*(L-L/c-2*Delta)
+
+    def sample_distances(self,number_of_samples):
+        part_mean_distances=np.zeros(number_of_samples)
+        vertical_mean_distances=np.zeros(number_of_samples)
+        for iter in number_of_samples:
+            part_mean_distances[iter]=np.mean([
+                    np.linalg.norm(self.nodes[self.parts[n1]]['pattern']-\
+                    self.nodes[self.parts[n1+1]]['pattern'],ord=1)
+                for n1 in range(len(self.parts)-1)
+                ] )
+            vertical_mean_dist=np.mean( [
+                    [
+                        np.linalg.norm(self.nodes[self.parts[sec_ndx]]['pattern']\
+                        -self.nodes[leaf]['pattern'],ord=1)
+                    for leaf in self.part_leaves[sec_ndx]
+                    ]
+                for sec_ndx in range(self.c)
+                ] )
+            vertical_mean_distances[iter]=vertical_mean_dist
+            G.reset_patterns()
+        return part_mean_distances,vertical_mean_distances
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b."""
