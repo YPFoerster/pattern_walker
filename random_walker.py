@@ -283,7 +283,9 @@ class patternWalker(walker):
 
 class fullProbPatternWalker(patternWalker):
 
-    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,search_for=None):
+    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,\
+        high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
+        search_for=None):
         target=None
         if search_for is None:
             #In case a seed is fixed, this needs to be done first,
@@ -389,6 +391,64 @@ class fullProbPatternWalker(patternWalker):
         patternWalker.reset_patterns(self)
         if self.coordinates_set:
             self.set_coordinates()
+
+class patternStats(fullProbPatternWalker):
+    """
+    Wrapper for statistical properties of patterns, analytical and simulated.
+    """
+    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,\
+        high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
+        search_for=None):
+        super(patternStats, self).__init__(
+            G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,\
+                overlap,flip_rate,root_flip_rate,metric=None,search_for=None
+                )
+        self.c=nx.successors(G,init_pos)
+        self.h=nx.shortest_path_length(
+            G,init_pos,utils.leaves(G)[0]
+            )
+        #offset of marginal expectations from extreme values
+        self.beta_l=self.low_child_prior-(1-self.root_prior)*self.root_flip_rate
+        #beta_h not used in paper any more (set ot 0), but result still valid
+        self.beta_h=(1-self.root_prior)*self.root_flip_rate+self.root_prior-\
+            self.high_child_prior
+
+    def mean_part_dist(self,L=self.pattern_len,c=self.c,h=self.h,\
+        a=self.roor_prior,Gammap=self.root_flip_rate,Gamma=self.flip_rate,\
+        Delta=self.overlap,beta_h=self.beta_h,beta_l=self.beta_l):
+        if beta_h==0:
+            if Delta<=L*(c-2)/(2*c):
+                return 2*L*Gammap*(1-Gammap)*\
+                    (1-a)+2*L/c*(a-beta_l)*((c-2)*beta_l/a+1)-\
+                    4*Delta*(a-beta_l)*beta_l/a
+            else:
+                return 2*L*Gammap*(1-Gammap)*(1-a)+2*L/c*(c-1)*(a-beta_l)-\
+                    4*Delta*(a-beta_l)
+
+        else:
+            if Delta<=L*(c-2)/(2*c):
+                return 2*L*Gammap*(1-Gammap)*(1-a)+\
+                    2*L/c*(c*beta_l*(a-beta_l)/a+a+beta_l-\
+                    beta_h-2*beta_l*(2*a-beta_l-beta_h)/a)+\
+                    4*Delta/a*((a-beta_h)*beta_h-(a-beta_l)*beta_l)
+            else:
+                return 2*L*Gammap*(1-Gammap)*(1-a)-\
+                2*L/c*(a-beta_h)/a*( (beta_h+2*beta_l)*c-2*(beta_h+beta_l) )+\
+                2*L/c*(c-1)*(a+beta_l-beta_h)+\
+                4*Delta*(2/a*(a-beta_h)*(beta_h+beta_l)-a-beta_l+beta_h)
+
+
+    def vertical_rate(self,a_j,Gamma=self.flip_rate,Delta=self.overlap):
+        return 2*a_j*(1-a_j)*(1-(1-Gamma)**float(h-1))
+
+
+    def expected_vertical_distance(self,L=self.pattern_len,c=self.c,h=self.h,\
+        a=self.roor_prior,Gammap=self.root_flip_rate,Gamma=self.flip_rate,\
+        Delta=self.overlap,beta_h=self.beta_h,beta_l=self.beta_l):
+        a_l=(1-a)*Gammap+beta_l
+        a_h=(1-a)*Gammap+a
+        return self.vertical_rate(a_h,Gamma,Delta)*(L/c+2*Delta)+\
+            self.vertical_rate(a_l,Gamma,Delta)*(L-L/c-2*Delta)
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b."""
