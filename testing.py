@@ -8,21 +8,24 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 
-c=3 #offspring number
-h=4
+c=2 #offspring number
+h=2
 #bits in a pattern; must be adapted to ensure uniqueness of patterns
-L=48
-a=0.7
+L=16*c
+a=0.1
 Gamma=0.4
 Gammap=0.3
 Delta=0
 beta_l=0.1
 beta_h=0.0
+a_l=(1-a)*Gammap+beta_l
+a_h=(1-a)*Gammap+a-beta_h
+
 increment=0.1
 H,root=balanced_ditree(c,h)
 leaves_list=leaves(H)
 number_of_samples=100
-eps=2e-2
+eps=1e-6
 num_cores=4
 
 class WalkerDiffusionMFPTTestCase(unittest.TestCase):
@@ -49,7 +52,6 @@ class fullprobDiffusionMFTPTTestCase(unittest.TestCase):
         true_mfpt=mfpt(G,[(G.root,G.target_node)])
         diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
         self.assertTrue(abs(true_mfpt-diffusive_mfpt)<eps,'true_mfpt: {},diffusive_mfpt: {}'.format(true_mfpt,diffusive_mfpt))
-
 
 class MeanFieldDiffusionMFTPTTestCase(unittest.TestCase):
     def test_MF_mfpt(self):
@@ -95,11 +97,18 @@ class OverlapMeanFieldDiffusionMFTPTTestCase(unittest.TestCase):
         diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
         self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
 
+class MeanFieldMFPTMethodsTestCase(unittest.TestCase):
+    def test_MF_mfpt(self):
+        G=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
+        G.set_weights()
+        MF_mfpt=G.MF_mfpt()
+        MTM_approx_mfpt=G.MTM_mfpt(0)
+        self.assertTrue(abs(MF_mfpt-MTM_approx_mfpt)<eps,'MF_mfpt: {},MTM_approx_mfpt: {}'.format(MF_mfpt,MTM_approx_mfpt))
 
 class patternTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.Delta_range=range(0,int(L*(c-1)/(2*c))+1,5)
+        cls.Delta_range=range(0,int(L*(c-1)/(2*c))+1,int(L*(c-1)/(8*c)))
         cls.Gammap_range=np.arange(0,1+increment,increment)
         cls.Gamma_range=np.arange(0,1+increment,increment)
         cls.param_range=list(product(cls.Gammap_range,cls.Gamma_range,\
@@ -169,35 +178,26 @@ def get_averages(args):
             [np.mean(vertical_sampled),vertical_pred],\
             [np.mean(root_part_sampled),root_part_pred]
 
-diffusion_test_cases=(WalkerDiffusionMFPTTestCase,\
+test_case_dict={
+    'diffusion_test_cases':(WalkerDiffusionMFPTTestCase,\
     patterWalkerDiffusionMFPTTestCase,fullprobDiffusionMFTPTTestCase,\
-    MeanFieldDiffusionMFTPTTestCase,OverlapMeanFieldDiffusionMFTPTTestCase)
+    MeanFieldDiffusionMFTPTTestCase,OverlapMeanFieldDiffusionMFTPTTestCase),
+    'mean_field_test_cases':(MeanFieldMFPTMethodsTestCase,),
+    'patternStats_test_cases':(patternTestCase,)
+    }
 
-patternStats_test_cases=(patternTestCase,)
-
-def load_diffusion_tests(loader):
+def load_tests(loader, test_cases):
     suite=unittest.TestSuite()
-    for test_class in diffusion_test_cases:
-        tests=loader.loadTestsFromTestCase(test_class)
-        suite.addTests(tests)
-    return suite
-
-def load_patternStats_tests(loader):
-    suite=unittest.TestSuite()
-    for test_class in patternStats_test_cases:
+    for test_class in test_cases:
         tests=loader.loadTestsFromTestCase(test_class)
         suite.addTests(tests)
     return suite
 
 if __name__ == '__main__':
     #unittest.main()
-    loader=unittest.TestLoader()
-    diffusion_suite=load_diffusion_tests(loader)
-    runner=unittest.TextTestRunner(verbosity=3)
-    runner.run(diffusion_suite)
 
-
-    loader=unittest.TestLoader()
-    patternStats_suite=load_patternStats_tests(loader)
-    runner=unittest.TextTestRunner(verbosity=3)
-    runner.run(patternStats_suite)
+    for test_cases in test_case_dict.values():
+        loader=unittest.TestLoader()
+        test_suite=load_tests(loader,test_cases)
+        runner=unittest.TextTestRunner(verbosity=3)
+        runner.run(test_suite)
