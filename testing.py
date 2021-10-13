@@ -1,6 +1,6 @@
 import unittest
 import pattern_walker as pw
-from pattern_walker.utils import balanced_ditree,leaves
+from pattern_walker.utils import balanced_ditree,leaves,mfpt
 import networkx as nx
 from itertools import product
 import multiprocessing as mp
@@ -14,12 +14,42 @@ L=48
 a=0.7
 Gamma=0.4
 Gammap=0.3
+Delta=0
 beta_l=0.1
 beta_h=0.0
 increment=0.1
 H,root=balanced_ditree(c,h)
+leaves_list=leaves(H)
 number_of_samples=100
+eps=2e-2
 num_cores=4
+
+class WalkerDiffusionMFPTTestCase(unittest.TestCase):
+    def test_mfpt(self):
+        G=pw.walker(H,root,1.)
+        G.set_weights()
+        true_mfpt=mfpt(G,[(root,leaves_list[0])])
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(true_mfpt-diffusive_mfpt)<eps,'true_mfpt: {},diffusive_mfpt: {}'.format(true_mfpt,diffusive_mfpt))
+
+class patterWalkerDiffusionMFPTTestCase(unittest.TestCase):
+    def test_mfpt(self):
+        G=pw.patternWalker(H,root,L,0.)
+        G.set_weights()
+        true_mfpt=mfpt(G,[(G.root,G.target_node)])
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(true_mfpt-diffusive_mfpt)<eps,'true_mfpt: {},diffusive_mfpt: {}'.format(true_mfpt,diffusive_mfpt))
+
+class fullprobMFTPTTestCase(unittest.TestCase):
+
+    def test_fullprobpw(self):
+        G=pw.patternStats(H,root,L,0.,0.,0.,Delta,Gamma,0.)
+        G.set_weights()
+        true_mfpt=mfpt(G,[(G.root,G.target_node)])
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(true_mfpt-diffusive_mfpt)<eps,'true_mfpt: {},diffusive_mfpt: {}'.format(true_mfpt,diffusive_mfpt))
+
+
 
 class patternTestCase(unittest.TestCase):
     @classmethod
@@ -35,18 +65,18 @@ class patternTestCase(unittest.TestCase):
     def test_parts_overlap(self):
         test=np.array(self.testvalues[0])-np.array(self.testvalues[1])
         test=np.linalg.norm(test)/len(self.param_range)
-        self.assertTrue(test<1e-3,test)
+        self.assertTrue(test<eps,test)
 
     def test_vertical_dist(self):
         test=np.array(self.testvalues[2])-np.array(self.testvalues[3])
         test=np.linalg.norm(test)/len(self.param_range)
-        self.assertTrue(test<1e-3,test)
+        self.assertTrue(test<eps,test)
 
 
     def test_root_part_dist(self):
         test=np.array(self.testvalues[4])-np.array(self.testvalues[5])
         test=np.linalg.norm(test)/len(self.param_range)
-        self.assertTrue(test<1e-3,test)
+        self.assertTrue(test<eps,test)
 
     def get_testvalues(self):
         mean_part_dist = []
