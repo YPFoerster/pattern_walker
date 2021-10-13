@@ -1,5 +1,6 @@
 import unittest
 import pattern_walker as pw
+import mean_field as mf
 from pattern_walker.utils import balanced_ditree,leaves,mfpt
 import networkx as nx
 from itertools import product
@@ -40,15 +41,59 @@ class patterWalkerDiffusionMFPTTestCase(unittest.TestCase):
         diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
         self.assertTrue(abs(true_mfpt-diffusive_mfpt)<eps,'true_mfpt: {},diffusive_mfpt: {}'.format(true_mfpt,diffusive_mfpt))
 
-class fullprobMFTPTTestCase(unittest.TestCase):
+class fullprobDiffusionMFTPTTestCase(unittest.TestCase):
 
-    def test_fullprobpw(self):
+    def test_mfpt(self):
         G=pw.patternStats(H,root,L,0.,0.,0.,Delta,Gamma,0.)
         G.set_weights()
         true_mfpt=mfpt(G,[(G.root,G.target_node)])
         diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
         self.assertTrue(abs(true_mfpt-diffusive_mfpt)<eps,'true_mfpt: {},diffusive_mfpt: {}'.format(true_mfpt,diffusive_mfpt))
 
+
+class MeanFieldDiffusionMFTPTTestCase(unittest.TestCase):
+    def test_MF_mfpt(self):
+        G=mf.MF_patternWalker(c,h,H,root,L,0.,0.,0.,Delta,Gamma,0.)
+        G.set_weights()
+        MF_mfpt=G.MF_mfpt()
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
+
+    def test_MTM_mfpt(self):
+        G=mf.MF_patternWalker(c,h,H,root,L,0.,0.,0.,Delta,Gamma,0.)
+        G.set_weights()
+        MF_mfpt=G.MTM_mfpt(number_of_samples)
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
+
+    def test_MTM_approx_mfpt(self):
+        G=mf.MF_patternWalker(c,h,H,root,L,0.,0.,0.,Delta,Gamma,0.)
+        G.set_weights()
+        MF_mfpt=G.MTM_mfpt(0)
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
+
+class OverlapMeanFieldDiffusionMFTPTTestCase(unittest.TestCase):
+    def test_MF_mfpt(self):
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,0.,0.,0.,Delta,Gamma,0.)
+        G.set_weights()
+        MF_mfpt=G.MF_mfpt()
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
+
+    def test_MTM_mfpt(self):
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,0.,0.,0.,Delta,Gamma,0.)
+        G.set_weights()
+        MF_mfpt=G.MTM_mfpt(number_of_samples)
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
+
+    def test_MTM_approx_mfpt(self):
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,0.,0.,0.,Delta,Gamma,0.)
+        G.set_weights()
+        MF_mfpt=G.MTM_mfpt(0)
+        diffusive_mfpt=h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
+        self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
 
 
 class patternTestCase(unittest.TestCase):
