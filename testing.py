@@ -169,6 +169,35 @@ def get_averages(args):
             [np.mean(vertical_sampled),vertical_pred],\
             [np.mean(root_part_sampled),root_part_pred]
 
+diffusion_test_cases=(WalkerDiffusionMFPTTestCase,\
+    patterWalkerDiffusionMFPTTestCase,fullprobDiffusionMFTPTTestCase,\
+    MeanFieldDiffusionMFTPTTestCase,OverlapMeanFieldDiffusionMFTPTTestCase)
+
+patternStats_test_cases=(patternTestCase,)
+
+def load_diffusion_tests(loader):
+    suite=unittest.TestSuite()
+    for test_class in diffusion_test_cases:
+        tests=loader.loadTestsFromTestCase(test_class)
+        suite.addTests(tests)
+    return suite
+
+def load_patternStats_tests(loader):
+    suite=unittest.TestSuite()
+    for test_class in patternStats_test_cases:
+        tests=loader.loadTestsFromTestCase(test_class)
+        suite.addTests(tests)
+    return suite
 
 if __name__ == '__main__':
-    unittest.main()
+    #unittest.main()
+    loader=unittest.TestLoader()
+    diffusion_suite=load_diffusion_tests(loader)
+    runner=unittest.TextTestRunner(verbosity=3)
+    runner.run(diffusion_suite)
+
+
+    loader=unittest.TestLoader()
+    patternStats_suite=load_patternStats_tests(loader)
+    runner=unittest.TextTestRunner(verbosity=3)
+    runner.run(patternStats_suite)
