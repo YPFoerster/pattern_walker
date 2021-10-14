@@ -7,7 +7,7 @@ h=2
 
 
 
-class utilsTestcase(unittest.TestCase):
+class balanced_ditreeTestcase(unittest.TestCase):
 
     def test_size(self):
         H,root=utils.balanced_ditree(c,h)
@@ -21,6 +21,7 @@ class utilsTestcase(unittest.TestCase):
 
     def test_parts(self):
         H,root=utils.balanced_ditree(c,h)
+        #parts = branches
         parts=nx.neighbors(H,root)
         parts=list(parts)
         self.assertEqual(len(parts),c)
