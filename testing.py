@@ -100,21 +100,31 @@ class OverlapMeanFieldDiffusionMFTPTTestCase(unittest.TestCase):
 
 class MeanFieldMFPTMethodsTestCase(unittest.TestCase):
 
-    def test_MF_mfpt_overlap(self):
+    def test_MF_mfpt_max_overlap(self):
         G=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta_max,Gamma,Gammap)
         G.set_weights()
         G_O=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta_max,Gamma,Gammap)
         G_O.set_weights()
         MF_mfpt=G.MF_mfpt()
         overlap_MF_mfpt=G_O.MF_mfpt()
-        self.assertTrue(abs(MF_mfpt-overlap_MF_mfpt)<eps,'MF_mfpt: {},overlap_MF_mfpt: {}'.format(MF_mfpt,overlap_MF_mfpt))
+        self.assertTrue(abs(MF_mfpt-overlap_MF_mfpt)<eps,\
+            'MF_mfpt: {},overlap_MF_mfpt: {}'.format(MF_mfpt,overlap_MF_mfpt))
+
+    def test_MF_mfpt_wo_overlap(self):
+        G=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
+        G.set_weights()
+        MF_mfpt=G.MF_mfpt()
+        MTM_approx_mfpt=G.MTM_mfpt(0)
+        self.assertTrue(abs(MF_mfpt-MTM_approx_mfpt)<eps,\
+            'MF_mfpt: {},MTM_approx_mfpt: {}'.format(MF_mfpt,MTM_approx_mfpt))
 
     def test_MF_mfpt(self):
         G=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
         G.set_weights()
         MF_mfpt=G.MF_mfpt()
         MTM_approx_mfpt=G.MTM_mfpt(0)
-        self.assertTrue(abs(MF_mfpt-MTM_approx_mfpt)<eps,'MF_mfpt: {},MTM_approx_mfpt: {}'.format(MF_mfpt,MTM_approx_mfpt))
+        self.assertTrue(abs(MF_mfpt-MTM_approx_mfpt)<eps,\
+            'MF_mfpt: {},MTM_approx_mfpt: {}'.format(MF_mfpt,MTM_approx_mfpt))
 
 class MeanFieldOverlapNumbersTestCase(unittest.TestCase):
     def test_max_Delta_high_marginal(self):
