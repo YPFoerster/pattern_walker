@@ -280,6 +280,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             normalisation=1/(e_0+\
                 np.sum([ e_0/weight for weight in weights ])
                 )
+            #counter-clockwise. First towards target, then the other parts in order
             out.append((node,toward_target,e_0*normalisation))
             for neighbor in set(neigh)-set([toward_target]):
                 part=self.nodes[neighbor]['coordinates'][4]
@@ -291,18 +292,21 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             e_u=1+self.weight_bias(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
             normalisation=1/(e_u*(self.c-1)+e_r+e_r*e_u)
             for neighbor in neigh:
-                if neighbor==self.root:
-                    out.append( (node,neighbor,e_r*normalisation ) )
-                elif neighbor ==toward_target:
+                #counter-clockwise, starting from the target, then other children,
+                #finally root
+                if neighbor ==toward_target:
                     out.append( (node,neighbor,e_u*e_r*normalisation ) )
-                else:
+                elif not neighbor==self.root:
                     out.append( (node,neighbor,e_u*normalisation ) )
+                else:
+                    out.append( (node,neighbor,e_r*normalisation ) )
 
         elif self.root in neigh:
             coordinates=list(self.nodes[node]['coordinates'])
             coordinates[2]=0
             e=1+self.weight_bias(self.f(0,0,1,1,coordinates[4]),self.f(self.h-1,1,0,0,coordinates[4]),self.f(self.h-1,1,1,1,coordinates[4]))
             for neighbor in neigh:
+                #counter-clockwise. first root (=targetwards), then children
                 if neighbor==self.root:
                         out.append( (node,neighbor, e/(self.c+e) ) )
                 else:
@@ -320,6 +324,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             # TODO: following line with tightness 0/1 suitable for unit test
             #print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
             for neighbor in neigh:
+                #counter-clockwise. first targetwards, then children
                 if neighbor==toward_target:
                     out.append(( node,neighbor,e/(self.c+e)))
                 else:
@@ -421,7 +426,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
             'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
 
-        ## TODO: this can be simplified in the way done for the full-overlap case
+        # TODO: this can be simplified in the way done for the full-overlap case
         e_0=np.prod([
             (1+self.weight_bias(self.f(0,1,1,0,mu),self.f(self.h-1,0,0,0,mu),\
                 self.f(self.h-1,1,1,0,mu)))
@@ -475,7 +480,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
         kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #just under the root things are a bit messy, hence the following epsilons
 
-        ## TODO: simplify,spot errors
+        # TODO: simplify,spot errors
         e_root=np.prod([
                 (1+self.weight_bias(
                     self.f(0,1,1,0,mu),\
