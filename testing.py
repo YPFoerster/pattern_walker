@@ -8,10 +8,11 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 
-c=2 #offspring number
+c=3 #offspring number
 h=2
 #bits in a pattern; must be adapted to ensure uniqueness of patterns
 L=16*c
+Delta_max=int(L*(c-1)/(2*c))
 a=0.1
 Gamma=0.4
 Gammap=0.3
@@ -98,12 +99,39 @@ class OverlapMeanFieldDiffusionMFTPTTestCase(unittest.TestCase):
         self.assertTrue(abs(MF_mfpt-diffusive_mfpt)<eps,'MF_mfpt: {},diffusive_mfpt: {}'.format(MF_mfpt,diffusive_mfpt))
 
 class MeanFieldMFPTMethodsTestCase(unittest.TestCase):
+
+    def test_MF_mfpt_overlap(self):
+        G=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta_max,Gamma,Gammap)
+        G.set_weights()
+        G_O=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta_max,Gamma,Gammap)
+        G_O.set_weights()
+        MF_mfpt=G.MF_mfpt()
+        overlap_MF_mfpt=G_O.MF_mfpt()
+        self.assertTrue(abs(MF_mfpt-overlap_MF_mfpt)<eps,'MF_mfpt: {},overlap_MF_mfpt: {}'.format(MF_mfpt,overlap_MF_mfpt))
+
     def test_MF_mfpt(self):
-        G=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
         G.set_weights()
         MF_mfpt=G.MF_mfpt()
         MTM_approx_mfpt=G.MTM_mfpt(0)
         self.assertTrue(abs(MF_mfpt-MTM_approx_mfpt)<eps,'MF_mfpt: {},MTM_approx_mfpt: {}'.format(MF_mfpt,MTM_approx_mfpt))
+
+class MeanFieldOverlapNumbersTestCase(unittest.TestCase):
+    def test_max_Delta_high_marginal(self):
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta_max,Gamma,Gammap)
+        self.assertEqual(G.O_hh,1.)
+
+    def test_max_Delta_low_marginal(self):
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta_max,Gamma,Gammap)
+        self.assertEqual(G.O_ll,0.)
+
+    def test_min_Delta_high_marginal(self):
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,0,Gamma,Gammap)
+        self.assertEqual(G.O_hh,0.)
+
+    def test_min_Delta_low_marginal(self):
+        G=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,0,Gamma,Gammap)
+        self.assertTrue(abs(G.O_ll-1+2/c)<eps,abs(G.O_ll-1+2/c))
 
 class patternTestCase(unittest.TestCase):
     @classmethod
@@ -182,7 +210,7 @@ test_case_dict={
     'diffusion_test_cases':(WalkerDiffusionMFPTTestCase,\
     patterWalkerDiffusionMFPTTestCase,fullprobDiffusionMFTPTTestCase,\
     MeanFieldDiffusionMFTPTTestCase,OverlapMeanFieldDiffusionMFTPTTestCase),
-    'mean_field_test_cases':(MeanFieldMFPTMethodsTestCase,)
+    'mean_field_test_cases':(MeanFieldMFPTMethodsTestCase,MeanFieldOverlapNumbersTestCase)
     }
     # 'patternStats_test_cases':(patternTestCase,)
     # }
