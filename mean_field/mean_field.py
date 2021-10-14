@@ -222,24 +222,27 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         #just under the root things are a bit messy, hence the following epsilons
         e_r=self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
         e_u=self.weight_bias(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
-        cord_bias_list = [
-                 1+self.weight_bias(
-                    self.f(2,0,0,0),\
-                    self.f(k,0,0,0),\
-                    self.f(k+2,0,0,0)
-                    )
-            for k in range(self.h-2)
-            ] +\
-            [ (1+e_r)*(1+e_u) ] + \
+        cord_bias_list =\
             [
             1+self.weight_bias(
                     self.f(0,1,1,0),\
                     self.f(self.h-1,0,0,0),\
                     self.f(self.h-1,1,1,0)
                 )
+            ]+\
+            [ (1+e_r)*(1+e_u) ]+\
+            [
+                 1+self.weight_bias(
+                    self.f(2,0,0,0),\
+                    self.f(self.h-k-1,0,0,0),\
+                    self.f(self.h-k+1,0,0,0)
+                    )
+            for k in range(2,self.h)
             ]
-        eq_ratio_list = [ self.eq_ratio(k+1) for k in range(self.h-2) ]+[self.sub_root_cluster_eq_ratio()]+[ self.root_cluster_eq_ratio() ]
-        out = np.sum(np.sum( [[eq_ratio_list[self.h-k-1]*(self.c+cord_bias_list[self.h-k-1])/np.prod(cord_bias_list[self.h-k-1:self.h-i]) for k in range(i+1,self.h+1)] for i in range(self.h)] ))
+        numerators=[ self.c+cord_bias_list[0]-1 ]+[((1+e_u)*(self.c-1)+1+e_r+(1+e_r)*(1+e_u))]+[self.c+cord_bias_list[k] for k in range(2,self.h)]
+        eq_ratio_list = [self.root_cluster_eq_ratio(), self.sub_root_cluster_eq_ratio()]+[ self.eq_ratio(k) for k in range(2,self.h) ]
+
+        out = np.sum(np.sum( [[eq_ratio_list[k]*numerators[k]/np.prod(cord_bias_list[k:i]) for k in range(i)] for i in range(1,self.h+1)] ))
         return out
 
 
