@@ -136,11 +136,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def root_cluster_eq_ratio(self):
-        ajl=self.high_child_prior
-        ajr=self.high_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
         bias_list=[
                 1+self.weight_bias(
@@ -173,12 +168,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
     def sub_root_cluster_eq_ratio(self):
         #eq prob of cluster divided by eq prob of articulation pt, here the node under the root
         #just under the root things are a bit messy, hence the following epsilons
-        ajl=self.high_child_prior
-        ajr=self.high_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
-
         e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
         e_u=1+self.weight_bias(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
 
@@ -195,12 +184,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def eq_ratio(self,k):
         #eq prob of cluster divided by eq prob of articulation pt at height k over target
-        ajl=self.high_child_prior
-        ajr=self.high_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
-        kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
 
         if k==0:
             return 1.
@@ -217,12 +200,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        ajl=self.high_child_prior
-        ajr=self.high_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
-        kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #just under the root things are a bit messy, hence the following epsilons
         e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
         e_u=1+self.weight_bias(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
@@ -453,13 +430,6 @@ class overlap_MF_patternWalker(MF_patternWalker):
         return out
 
     def root_cluster_eq_ratio(self):
-        ajl=self.high_child_prior
-        ajr=self.high_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
-        kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr,\
-            'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
         # NOTE: This could be done using the mean weight function directly,
         #but doing it this way, we see if the cancellations in our formula are right
@@ -479,8 +449,6 @@ class overlap_MF_patternWalker(MF_patternWalker):
         bias_dict={
             mu: [e_0,e_r_list[mu-2], 1+self.weight_bias(self.f(0,0,1,1,mu),\
                 self.f(self.h-1,1,0,0,mu),self.f(self.h-1,1,1,1,mu))]\
-            # mu: [e_r_list[mu-2], 1+self.weight_bias(self.f(0,0,1,1,mu),\
-            #     self.f(self.h-1,1,0,0,mu),self.f(self.h-1,1,1,1,mu))]\
                 +[
                     1+self.weight_bias(
                         self.f(0,0,0,2,mu),\
@@ -508,15 +476,8 @@ class overlap_MF_patternWalker(MF_patternWalker):
         return out
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        ajl=self.high_child_prior
-        ajr=self.high_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
-        kwargs={'c':self.c,'h':self.h,'L':self.pattern_len,'ajl':ajl,'ajr':ajr, 'a':a , 'Gamma':Gamma,'Gammap':Gammap}
         #just under the root things are a bit messy, hence the following epsilons
 
-        # TODO: simplify,spot errors
         branch_weights=[(1+\
             self.weight_bias(
                 self.f(0,1,1,0,mu),\
