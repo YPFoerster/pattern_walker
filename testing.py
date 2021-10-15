@@ -1,7 +1,7 @@
 import unittest
 import pattern_walker as pw
 import mean_field as mf
-from pattern_walker.utils import balanced_ditree,leaves,mfpt
+from pattern_walker.utils import balanced_ditree,leaves,mfpt,eq_prob_cluster_ratios,cluster_by_branch
 import networkx as nx
 from itertools import product
 import multiprocessing as mp
@@ -9,15 +9,15 @@ import numpy as np
 import pandas as pd
 
 c=3 #offspring number
-h=2
+h=4
 #bits in a pattern; must be adapted to ensure uniqueness of patterns
 L=16*c
 Delta_max=int(L*(c-1)/(2*c))
-a=0.1
-Gamma=0.4
+a=1.
+Gamma=2.
 Gammap=0.3
-Delta=0
-beta_l=0.1
+Delta=4
+beta_l=a/10
 beta_h=0.0
 a_l=(1-a)*Gammap+beta_l
 a_h=(1-a)*Gammap+a-beta_h
@@ -26,7 +26,7 @@ increment=0.1
 H,root=balanced_ditree(c,h)
 leaves_list=leaves(H)
 number_of_samples=100
-eps=1e-6
+eps=5e-3
 num_cores=4
 
 class WalkerDiffusionMFPTTestCase(unittest.TestCase):
@@ -108,7 +108,7 @@ class MeanFieldMFPTMethodsTestCase(unittest.TestCase):
         MF_mfpt=G.MF_mfpt()
         overlap_MF_mfpt=G_O.MF_mfpt()
         self.assertTrue(abs(MF_mfpt-overlap_MF_mfpt)<eps,\
-            'MF_mfpt: {},overlap_MF_mfpt: {}'.format(MF_mfpt,overlap_MF_mfpt))
+            'at full overlap, we shoud have MF_mfpt ignoring overlap: {} = MF_mfpt respecting overlap: {}'.format(MF_mfpt,overlap_MF_mfpt))
 
     def test_MF_mfpt_wo_overlap(self):
         G=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
@@ -116,7 +116,7 @@ class MeanFieldMFPTMethodsTestCase(unittest.TestCase):
         MF_mfpt=G.MF_mfpt()
         MTM_approx_mfpt=G.MTM_mfpt(0)
         self.assertTrue(abs(MF_mfpt-MTM_approx_mfpt)<eps,\
-            'MF_mfpt: {},MTM_approx_mfpt: {}'.format(MF_mfpt,MTM_approx_mfpt))
+            'ignoring overlap: MF_mfpt: {},MF_mfpt from MTM: {}'.format(MF_mfpt,MTM_approx_mfpt))
 
     def test_MF_mfpt(self):
         G=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
@@ -124,7 +124,45 @@ class MeanFieldMFPTMethodsTestCase(unittest.TestCase):
         MF_mfpt=G.MF_mfpt()
         MTM_approx_mfpt=G.MTM_mfpt(0)
         self.assertTrue(abs(MF_mfpt-MTM_approx_mfpt)<eps,\
-            'MF_mfpt: {},MTM_approx_mfpt: {}'.format(MF_mfpt,MTM_approx_mfpt))
+            'respecting overlap: MF_mfpt: {},MTM_mfpt from MTM: {}'.format(MF_mfpt,MTM_approx_mfpt))
+
+    def test_MTM_graph_nodes(self):
+        M=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
+        M.set_weights()
+        M_G,_=M.approx_MTM()
+        test_list=[(node in M_G.nodes) for node in M.nodes]
+        self.assertTrue( all(test_list) )
+
+    def test_MTM_graph_nodes_reverse(self):
+        M=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
+        M.set_weights()
+        M_G,_=M.approx_MTM()
+        test_list=[(node in M.nodes) for node in M_G.nodes]
+        self.assertTrue( all(test_list) )
+
+
+class MeanFieldEqRatiosTestCase(unittest.TestCase):
+
+    def test_MF_local_eq_wo_overlap(self):
+        M=mf.MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
+        M.set_weights()
+        M_G,_=M.approx_MTM()
+        clusters=cluster_by_branch(M)
+        Q=eq_prob_cluster_ratios(M_G,clusters,list(clusters.keys()))
+        Q_test=np.array([M.root_cluster_eq_ratio(),M.sub_root_cluster_eq_ratio()]+[M.eq_ratio(h-k) for k in range(2,h+1)])
+        self.assertTrue(np.linalg.norm(Q-Q_test)<eps,np.linalg.norm(Q-Q_test))
+
+
+    def test_MF_local_eq_with_overlap(self):
+        M=mf.overlap_MF_patternWalker(c,h,H,root,L,a,a_l,a_h,Delta,Gamma,Gammap)
+        M.set_weights()
+        M_G,_=M.approx_MTM()
+        clusters=cluster_by_branch(M)
+        Q=eq_prob_cluster_ratios(M_G,clusters,list(clusters.keys()))
+        Q_test=np.array([M.root_cluster_eq_ratio(),M.sub_root_cluster_eq_ratio()]+[M.eq_ratio(h-k) for k in range(2,h+1)])
+        self.assertTrue(np.linalg.norm(Q-Q_test)<eps,np.linalg.norm(Q-Q_test))
+
+
 
 class MeanFieldOverlapNumbersTestCase(unittest.TestCase):
     def test_max_Delta_high_marginal(self):
@@ -220,7 +258,7 @@ test_case_dict={
     'diffusion_test_cases':(WalkerDiffusionMFPTTestCase,\
     patterWalkerDiffusionMFPTTestCase,fullprobDiffusionMFTPTTestCase,\
     MeanFieldDiffusionMFTPTTestCase,OverlapMeanFieldDiffusionMFTPTTestCase),
-    'mean_field_test_cases':(MeanFieldMFPTMethodsTestCase,MeanFieldOverlapNumbersTestCase)
+    'mean_field_test_cases':(MeanFieldMFPTMethodsTestCase,MeanFieldOverlapNumbersTestCase,MeanFieldEqRatiosTestCase)
     }
     # 'patternStats_test_cases':(patternTestCase,)
     # }
