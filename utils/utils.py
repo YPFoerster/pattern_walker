@@ -12,7 +12,7 @@ list_degree_nodes-- Return list of nodes with desired degree.
 downward_current-- Calculate downward two-step probabilites through given nodes.
 upward_current-- Calculate upward two-step probabilites through given nodes.
 path_direction_profile-- Return list of step directions for a path and reference.
-largest_eigenvector-- Return the dominant eigenvector of a Markov chain.
+stationary_distribution-- Return the dominant eigenvector of a Markov chain.
 normalised_laplacian-- Return normalised_laplacian Laplacian of a Markov chain.
 mfpt-- Return mean first passage times between set of Markov chain states.
 
@@ -50,9 +50,11 @@ uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 __all__ = [
     'random_dag', 'poisson_ditree', 'balanced_ditree', 'directify', 'sources',\
     'leaves', 'uniform_ditree', 'list_degree_nodes', 'downward_current',\
-    'upward_current', 'path_direction_profile', 'largest_eigenvector',\
-    'normalised_laplacian', 'mfpt', 'block_indices', 'filter_nodes', 'seed_decorator',\
-    'spanning_tree_with_root','tree_weight','tree_mfpts', 'cluster_by_branch'
+    'upward_current', 'path_direction_profile', 'stationary_distribution',\
+    'local_eq_probs','eq_prob_cluster_ratios', 'normalised_laplacian', 'mfpt',\
+    'block_indices',\
+    'filter_nodes', 'seed_decorator', 'spanning_tree_with_root','tree_weight',\
+    'tree_mfpts', 'cluster_by_branch'
     ]
 
 def random_dag(nodes, edges):
@@ -417,7 +419,7 @@ def path_direction_profile(G,reference,path):
             for i in range(len(path[:-1]))
             ]
 
-def largest_eigenvector(G,weight='weight'):
+def stationary_distribution(G,weight='weight'):
     """
     Return the maximum eigenvector of a Markov chain with state space G.
 
@@ -434,11 +436,12 @@ def largest_eigenvector(G,weight='weight'):
     >>> root=list_degree_nodes(G,1)[0]
     >>> # For this G, the largest eigenvector is the stationary
     >>> # distribution of a random walker, all entries positive.
-    >>> pi=largest_eigenvector(G,weight=None)
+    >>> pi=stationary_distribution(G,weight=None)
     >>> all( [x>0 for x in pi] )
     True
     """
     #trans_{i,j}=Prob(j|i)= Prob(i->j)
+    # TODO: replace by to_numpy_array, which should render the squeeze unnecessary
     trans = nx.to_numpy_matrix(G,weight=weight)
     evls, evcs = np.linalg.eig(trans.T)
     max_evl_ndx=np.argmax(np.real(evls))
@@ -448,6 +451,42 @@ def largest_eigenvector(G,weight='weight'):
     if any( [x<0 for x in evcs[:,max_evl_ndx]] ):
         evcs[:,max_evl_ndx]*=-1
     return np.squeeze(np.array(evcs[:,max_evl_ndx]))
+
+def local_eq_probs(G,clusters):
+    """
+    Calculate the local-equilibrium coarse-grained transition probabilites with
+    marcostates given by the clusters.
+    """
+    nodes=[node for cluster in clusters for node in cluster]
+    indices=np.array([[nodes.index(node) for node in cluster] for cluster in clusters])
+    q=nx.to_numpy_array(G,nodelist=nodes)
+    q=np.diag(1/np.sum(q,axis=-1)).dot(q)
+    # TODO: rewrite using function above
+    evals,evecs=np.linalg.eig(q.T)
+    pi=evecs[:,list(evals).index(np.max(evals))].real
+    pi/=np.sum(pi)
+    PI=np.array([ np.sum(pi[indices[cluster_ndx]]) for cluster_ndx in range(len(clusters)) ])
+    Q=[[ 1/PI[cluster_I]*np.sum( pi[indices[cluster_I]].T.dot(q[indices[cluster_I]][:,indices[cluster_J]]) )  for cluster_J in range(len(clusters)) ] for cluster_I in range(len(clusters))]
+    return np.array(Q)
+
+def eq_prob_cluster_ratios(G,clusters,articulations):
+    """
+    Calculate the ratios pi_articulation/PI_cluster_of_that_articulation.
+    """
+    # nodes=[node for cluster in clusters for node in cluster]
+    # TODO: clean up
+    nodes=list(G.nodes)
+    clustered_indices=np.array([[nodes.index(node) for node in cluster] for cluster in clusters.values()])
+    articulation_indeces=[ nodes.index(node) for node in articulations ]
+    q=nx.to_numpy_array(G,nodelist=nodes)
+    q=np.diag(1/np.sum(q,axis=-1)).dot(q)
+    # TODO: rewrite using function above
+    evals,evecs=np.linalg.eig(q.T)
+    pi=evecs[:,list(evals).index(np.max(evals))].real
+    pi/=np.sum(pi)
+    PI=np.array([ np.sum(pi[clustered_indices[cluster_ndx]]) for cluster_ndx in range(len(clusters)) ])
+    R=[ PI[cluster_I]/pi[articulation_indeces[cluster_I]] for cluster_I in range(len(clusters)) ]
+    return np.array(R)
 
 def normalised_laplacian(G,weight='weight',stat_dist=None):
     """
@@ -459,7 +498,7 @@ def normalised_laplacian(G,weight='weight',stat_dist=None):
         from i to j, and assume it to be normalised. (default: 'weight')
     stat_dist-- Stationary distribution of the Markov chain (left eigenvector
         for the unit eigenvalue of the transition matrix). If None, calculate
-        using largest_eigenvector.
+        using stationary_distribution.
 
     return-- Normalised Laplacian, np.ndarray with shape (len(G),len(G)).
 
@@ -470,7 +509,7 @@ def normalised_laplacian(G,weight='weight',stat_dist=None):
     """
     pi=stat_dist
     if pi is None:
-        pi=largest_eigenvector(G,weight=weight)
+        pi=stationary_distribution(G,weight=weight)
     trans=nx.to_numpy_matrix(G, weight=weight)
     return np.matmul(np.matmul(np.diagflat(np.sqrt(pi)),np.eye(len(pi))-trans),np.diagflat(1/np.sqrt(pi)))
 
@@ -489,7 +528,7 @@ def mfpt(
         from i to j, and assume it to be normalised. (default: 'weight')
     stat_dist-- Stationary distribution of the Markov chain (left eigenvector
         for the unit eigenvalue of the transition matrix). If None, calculate
-        using largest_eigenvector.
+        using stationary_distribution.
     norm_laplacian-- Normalised Laplacian of the Markov chain. If None,
         calculate using norm_laplacian.
         (Only needed for method='fundamental_matrix')
@@ -523,7 +562,7 @@ def mfpt(
         pi=stat_dist
         nlap=norm_laplacian
         if pi is None:
-            pi=largest_eigenvector(G,weight=weight_str)
+            pi=stationary_distribution(G,weight=weight_str)
         if norm_laplacian is None:
             norm_laplacian=normalised_laplacian(G,weight_str,pi)
         inv_nlap=np.linalg.pinv(norm_laplacian) #pseudoinverse of nlap
@@ -680,10 +719,12 @@ def cluster_by_branch(G):
         try:
             #we want the descendants of node that are NOT down the path
             H.remove_edges_from(path_edges[node])
-            clusters[node]={'cluster':[node]+list(nx.descendants(H,node))}
+            # clusters[node]={'cluster':[node]+list(nx.descendants(H,node))}
+            clusters[node]=[node]+list(nx.descendants(H,node))
         except KeyError:
             if node==G.target_node:
-                clusters[node]={'cluster':[node]}
+                # clusters[node]={'cluster':[node]}
+                clusters[node]=[node]
     return clusters
 
 def filter_nodes(G,attrstr,value):
