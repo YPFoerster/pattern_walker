@@ -99,24 +99,42 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         out=0.
 
         if k>0 and up+down+m==0:
-            out=self.Q_power(k,aj=ajl)
-            out = ajl*out[1,0]+(1-ajl)*out[0,1]
+            # NOTE: seems correct
+            out=2*ajl*(1-ajl)*(1-(1-Gamma)**k)
+            #out=self.Q_power(k,aj=ajl)
+            #out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==1 and down+m==0:
-            out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl))
-            out = ajl*out[1,0]+(1-ajl)*out[0,1]
+            # NOTE: seems okay
+            out=a+ajl-2*a*ajl+2*(1-a)*(1-Gamma)**k*(Gammap-ajl)
+            # out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl))
+            # out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==down==1:
-            out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl)).dot(self.R_down(aj=ajr)).dot(self.Q_power(m,aj=ajr))
-            out = ajl*out[1,0]+(1-ajl)*out[0,1]
+            # NOTE: seems correct (special case to be tested)
+            #out=2/a*(1-Gamma)**(k+m)*((1-a)*(Gammap*(ajl+ajr)-Gammap**2)-ajl*ajr)+ajl+ajr+2*ajl*ajr*(1-(1-Gamma)**(k+m))
+            if a:
+                out=2/a*(1-Gamma)**(k+m)*((1-a)*Gammap*(ajl+ajr-Gammap)-ajl*ajr)+ajl+ajr-2*ajl*ajr*(1-(1-Gamma)**(k+m))
+            else:
+                out=Gammap*(1-(1-Gamma)**m)#  +Gammap*((1-Gamma)**m-2*(1-Gamma)**m*Gammap)+a*(1-Gamma)**m*(1-3*Gammap+2*Gammap**2)
+            # out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl)).dot(self.R_down(aj=ajr)).dot(self.Q_power(m,aj=ajr))
+            # out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==0 and down==1:
-            out=self.R_down(aj=ajr).dot(self.Q_power(m,aj=ajr))
-            out = a*out[1,0]+(1-a)*out[0,1]
+            #out=a+ajr-2*a*ajr+2*(1-a)*(1-Gamma)**m*(Gammap-ajr)
+            # out=self.R_down(aj=ajr).dot(self.Q_power(m,aj=ajr))
+            # out = a*out[1,0]+(1-a)*out[0,1]
+            if a:
+                # NOTE: seems alright (speccial case to be tested)
+                out=2*a*(1-a)*(1-(1-Gamma)**m)+2*(1-a)*(1-Gamma)**m*Gammap
+            else:
+                out=Gammap
 
         elif down==0:
-            out=self.Q_power(m,aj=ajr)
-            out = ajr*out[1,0]+(1-ajr)*out[0,1]
+            # NOTE: should be alright
+            # out=self.Q_power(m,aj=ajr)
+            # out = ajr*out[1,0]+(1-ajr)*out[0,1]
+            out=2*ajr*(1-ajr)*(1-(1-Gamma)**m)
 
         return out
 
@@ -130,6 +148,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             else:
                 out=f2*self.pattern_len
         else:
+            # f2=f2/fk2
             dk1_inv_exp=(1-(1-fk)**(self.pattern_len+1))/((self.pattern_len+1)*fk)
             out=-1+(1+L*f2*fk2/(1-fk)-fk2*(1-fk-f2)/(fk*(1-fk)))*dk1_inv_exp+fk2*(1-fk-f2)/(fk*(1-fk))
 
@@ -343,6 +362,12 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                 else:
                     out.append(( node,neighbor,1/(self.c+e) ))
         return out
+
+    def diffusive_mfpt(self):
+        #Return MFPT for diffusive walker on the same graph
+        h=self.h
+        c=self.c
+        return h*(2*c**(h+1)/(c-1)-1)-2*c*(c**h-1)/(c-1)**2
 
 
 class overlap_MF_patternWalker(MF_patternWalker):
