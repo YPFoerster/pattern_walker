@@ -294,8 +294,14 @@ class fullProbPatternWalker(patternWalker):
         elif search_for in G.nodes:
             target=search_for
         self.root_prior=root_prior
-        self.high_child_prior=high_child_prior
-        self.low_child_prior=low_child_prior
+        if high_child_prior<=(1-root_prior)*root_flip_rate+root_prior and high_child_prior>=(1-root_prior)*root_flip_rate:
+            self.high_child_prior=high_child_prior
+        else:
+            self.high_child_prior=(1-root_prior)*root_flip_rate+root_prior
+        if low_child_prior>=(1-root_prior)*root_flip_rate and low_child_prior<=(1-root_prior)*root_flip_rate+root_prior:
+            self.low_child_prior=low_child_prior
+        else:
+            self.low_child_prior=(1-root_prior)*root_flip_rate+root_prior/10
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
         self.num_sections=self.set_position_numbers(G,init_pos,target)
