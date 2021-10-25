@@ -106,17 +106,21 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
         elif up==1 and down+m==0:
             # NOTE: seems okay
-            out=a+ajl-2*a*ajl+2*(1-a)*(1-Gamma)**k*(Gammap-ajl)
+            if a:
+                out=a+ajl-2*a*ajl+2*(1-a)*(1-Gamma)**k*(Gammap-ajl)
+            else:
+                out=Gammap
             # out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl))
             # out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==down==1:
-            # NOTE: seems correct (special case to be tested)
+            # NOTE: seems correct
             #out=2/a*(1-Gamma)**(k+m)*((1-a)*(Gammap*(ajl+ajr)-Gammap**2)-ajl*ajr)+ajl+ajr+2*ajl*ajr*(1-(1-Gamma)**(k+m))
             if a:
                 out=2/a*(1-Gamma)**(k+m)*((1-a)*Gammap*(ajl+ajr-Gammap)-ajl*ajr)+ajl+ajr-2*ajl*ajr*(1-(1-Gamma)**(k+m))
             else:
-                out=Gammap*(1-(1-Gamma)**m)#  +Gammap*((1-Gamma)**m-2*(1-Gamma)**m*Gammap)+a*(1-Gamma)**m*(1-3*Gammap+2*Gammap**2)
+                # out=(1-Gammap)*(2*Gammap+a*(1-Gamma)**m*(1-2*Gammap))
+                out=2*(1-Gammap)*(Gammap-a*(1-Gamma)**m)+a*(1-Gammap)*(1-Gamma)**m
             # out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl)).dot(self.R_down(aj=ajr)).dot(self.Q_power(m,aj=ajr))
             # out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
