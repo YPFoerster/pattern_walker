@@ -626,7 +626,12 @@ def mfpt(
         # to collect those and calculate the inverse only one for this target
         for pair in node_pairs:
             node_order=[pair[0]]+list(set( list(G.nodes) )-set(pair)  )+[pair[1]]
-            W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order)
+            try:
+                W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order)
+            except MemoryError as ex:
+                print(str(ex))
+                print('Trying with dtype=np.float32.')
+                W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order,dtype=np.float32)
             if (np.sum(W,axis=-1)!=1).any:
                 W=np.diag(1/np.sum(W,axis=-1)).dot(W)
                 try:
