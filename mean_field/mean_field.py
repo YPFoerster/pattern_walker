@@ -26,8 +26,8 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def Q_power(self,k,aj=None):
         if aj is None:
-            aj=self.high_child_prior
-        Gamma=self.flip_rate
+            aj=self.a_high
+        Gamma=self.Gamma
 
         if aj>0:
             out= np.array(
@@ -40,11 +40,11 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def R_up(self,aj=None,a=None,Gammap=None):
         if aj is None:
-            ajl=self.high_child_prior
+            ajl=self.a_high
         if a is None:
-            a=self.root_prior
+            a=self.a_root
         if Gammap is None:
-            Gammap=self.root_flip_rate
+            Gammap=self.Gamma_root
 
         if aj>0 and aj<1:
             out= np.array(
@@ -65,11 +65,11 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def R_down(self,aj=None,a=None,Gammap=None):
         if aj is None:
-            aj=self.high_child_prior
+            aj=self.a_high
         if a is None:
-            a=self.root_prior
+            a=self.a_root
         if Gammap is None:
-            Gammap=self.root_flip_rate
+            Gammap=self.Gamma_root
 
         if a>0:
             return np.array(
@@ -90,12 +90,12 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def f(self,k,up=0,down=0,m=0,mu=0,ajl=None,ajr=None):
         if ajl is None:
-            ajl=self.high_child_prior
+            ajl=self.a_high
         if ajr is None:
-            ajr=self.high_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
+            ajr=self.a_high
+        a=self.a_root
+        Gamma=self.Gamma
+        Gammap=self.Gamma_root
         out=0.
 
         if k>0 and up+down+m==0:
@@ -397,11 +397,11 @@ class overlap_MF_patternWalker(MF_patternWalker):
         self.O_lh=self.O_hl
 
     def f(self,k,up,down,m,mu=2,**kwargs):
-        a_h=self.high_child_prior
-        a_l=self.low_child_prior
-        a=self.root_prior
-        Gamma=self.flip_rate
-        Gammap=self.root_flip_rate
+        a_h=self.a_high
+        a_l=self.a_low
+        a=self.a_root
+        Gamma=self.Gamma
+        Gammap=self.Gamma_root
 
         out=0.
         coordinates=(k,up,down,m)
