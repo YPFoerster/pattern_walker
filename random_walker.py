@@ -141,7 +141,7 @@ class patternWalker(walker):
     Extending variables:
     pattern_len-- Length of binary strings assined to all nodes.
 
-    flip_rate-- Probability to change any string bit from one node to its child.
+    Gamma-- Probability to change any string bit from one node to its child.
 
     root-- The root node, initial position of the walker and string propagation.
 
@@ -173,7 +173,7 @@ class patternWalker(walker):
     True
     """
 
-    def __init__(self,G,root,pattern_len,flip_rate,metric=None,target=None):
+    def __init__(self,G,root,pattern_len,Gamma,metric=None,target=None):
         """
         Initialise variables as described, passing G and it's root to the
         the superclass. Calls set_patterns to assign binary strings to all
@@ -182,7 +182,7 @@ class patternWalker(walker):
         G-- Graph data, must be compatible with class walker.
         root-- inital postion of the walker. Will be handled as root of G
         pattern_len-- Length of binary strings assigned to nodes.
-        flip_rate-- Probability of changing any bit in the string propagated
+        Gamma-- Probability of changing any bit in the string propagated
             from parent to child node.
         metric-- Metric for binary strings. (if None: Hamming distance)
         target-- The target node of the walker. If None, one is chosen
@@ -192,7 +192,7 @@ class patternWalker(walker):
         self.hierarchy_backup=G.copy()
         super(patternWalker,self).__init__(G,root,1.)
         self.pattern_len=pattern_len
-        self.flip_rate=flip_rate
+        self.Gamma=Gamma
         self.root=root
         if metric is None:
             self.metric=hamming_dist
@@ -230,7 +230,7 @@ class patternWalker(walker):
             for node in queue:
                 pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
                 self.nodes[node]['pattern']=mutate_pattern(
-                                                pattern,self.flip_rate
+                                                pattern,self.Gamma
                                                 )
             queue=[suc for node in queue for suc in self.successors(node)]
 
@@ -289,8 +289,8 @@ class fullProbPatternWalker(patternWalker):
     is given by [pattern length]/[number of branches] + 2*Overlap ($L/c+2\Delta$)
     for the former and L less that number ($L(c-1)/c-2\Delta$) for the latter.
     Overlap ($\Delta$) controls the number of bits which on neihbouring branches
-    both have high expectation $a_h$. root_flip_rate ($\Gamma^\prime$) is the
-    mutation rate from root- to part(i.e.first level)-patterns, flip_rate ($\Gamma$)
+    both have high expectation $a_h$. Gamma_root ($\Gamma^\prime$) is the
+    mutation rate from root- to part(i.e.first level)-patterns, Gamma ($\Gamma$)
     the mutation rate on lower levels.
 
     Overriding methods:
@@ -305,18 +305,18 @@ class fullProbPatternWalker(patternWalker):
     reset_patterns-- call parent function, then set_coordinates
 
     Extending variables:
-    root_prior -- probability that a given bit of the root pattern is 1
+    a_root -- probability that a given bit of the root pattern is 1
 
-    root_flip_rate -- probability that a given bit of a Part pattern is
+    Gamma_root -- probability that a given bit of a Part pattern is
         is 1 given that the same bit for the root pattern is 0
 
-    low_child_prior -- probability that a given (Part-generic) bit is 1
+    a_low -- probability that a given (Part-generic) bit is 1
 
-    high_child_prior -- probability that a given (Part-specific) bit is 1
+    a_high -- probability that a given (Part-specific) bit is 1
     """
 
-    def __init__(self,G,root,pattern_len,root_prior,low_child_prior,\
-        high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
+    def __init__(self,G,root,pattern_len,a_root,a_low,\
+        a_high,overlap,Gamma,Gamma_root,metric=None,\
         target=None):
         if target is None:
             #In case a seed is fixed, this needs to be done first,
@@ -324,21 +324,21 @@ class fullProbPatternWalker(patternWalker):
             target=np.random.choice(utils.leaves(G))
         elif target in G.nodes:
             target=target
-        self.root_prior=root_prior
-        if high_child_prior<=(1-root_prior)*root_flip_rate+root_prior and high_child_prior>=(1-root_prior)*root_flip_rate:
-            self.high_child_prior=high_child_prior
+        self.a_root=a_root
+        if a_high<=(1-a_root)*Gamma_root+a_root and a_high>=(1-a_root)*Gamma_root:
+            self.a_high=a_high
         else:
-            self.high_child_prior=(1-root_prior)*root_flip_rate+root_prior
-        if low_child_prior>=(1-root_prior)*root_flip_rate and low_child_prior<=(1-root_prior)*root_flip_rate+root_prior:
-            self.low_child_prior=low_child_prior
+            self.a_high=(1-a_root)*Gamma_root+a_root
+        if a_low>=(1-a_root)*Gamma_root and a_low<=(1-a_root)*Gamma_root+a_root:
+            self.a_low=a_low
         else:
-            self.low_child_prior=(1-root_prior)*root_flip_rate+root_prior/10
+            self.a_low=(1-a_root)*Gamma_root+a_root/10
         self.overlap=overlap
-        self.root_flip_rate=root_flip_rate
+        self.Gamma_root=Gamma_root
         self.num_parts=self.set_position_numbers(G,root,target)
         self.part_size=int(pattern_len/self.num_parts)
         self.coordinates_set=False
-        super(fullProbPatternWalker,self).__init__(G,root,pattern_len,flip_rate,metric,target)
+        super(fullProbPatternWalker,self).__init__(G,root,pattern_len,Gamma,metric,target)
 
     def set_position_numbers(self,G,root,target):
         """
@@ -394,7 +394,7 @@ class fullProbPatternWalker(patternWalker):
         generation/level. A pattern/string is generated based on its parent
         string by the function mutate_pattern.
         """
-        self.nodes[self.root]['pattern']=np.random.choice([0,1],p=[1-self.root_prior,self.root_prior],
+        self.nodes[self.root]['pattern']=np.random.choice([0,1],p=[1-self.a_root,self.a_root],
             replace=True,size=self.pattern_len
                                             )
         last_patterned_gen=[self.root]
@@ -416,11 +416,11 @@ class fullProbPatternWalker(patternWalker):
 
             #mutate (1) specific and (2) generic bits separately
             pattern[in_part]=mutate_pattern(
-                                        pattern[in_part],self.root_flip_rate,self.root_prior,self.high_child_prior,at_root=True
+                                        pattern[in_part],self.Gamma_root,self.a_root,self.a_high,at_root=True
                                             )
             if len(out_part):
                 pattern[out_part]=mutate_pattern(
-                                            pattern[out_part],self.root_flip_rate,self.root_prior,self.low_child_prior,at_root=True
+                                            pattern[out_part],self.Gamma_root,self.a_root,self.a_low,at_root=True
                                                 )
             #undo rolling to have bits in the right positions
             self.nodes[head]['pattern']=np.roll(pattern,left_part_bound)
@@ -445,11 +445,11 @@ class fullProbPatternWalker(patternWalker):
 
                 #mutate (1) specific and (2) generic bits separately
                 pattern[in_part]=mutate_pattern(
-                                            pattern[in_part],self.flip_rate,self.high_child_prior,self.high_child_prior,at_root=False
+                                            pattern[in_part],self.Gamma,self.a_high,self.a_high,at_root=False
                                                 )
                 if len(out_part):
                     pattern[out_part]=mutate_pattern(
-                                                pattern[out_part],self.flip_rate,self.low_child_prior,self.low_child_prior,at_root=False
+                                                pattern[out_part],self.Gamma,self.a_low,self.a_low,at_root=False
                                                     )
                 # undo rollling
                 self.nodes[node]['pattern']=np.roll(pattern,left_part_bound)
@@ -466,12 +466,12 @@ class patternStats(fullProbPatternWalker):
     """
     Wrapper class for statistical properties of patterns, analytical and simulated.
     """
-    def __init__(self,G,root,pattern_len,root_prior,low_child_prior,\
-        high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
+    def __init__(self,G,root,pattern_len,a_root,a_low,\
+        a_high,overlap,Gamma,Gamma_root,metric=None,\
         target=None):
         super(patternStats, self).__init__(
-            G,root,pattern_len,root_prior,low_child_prior,high_child_prior,\
-                overlap,flip_rate,root_flip_rate,metric=None,target=None
+            G,root,pattern_len,a_root,a_low,a_high,\
+                overlap,Gamma,Gamma_root,metric=None,target=None
                 )
         #the following are handy to have at hand
         self.leaves=utils.leaves(G)
@@ -487,10 +487,10 @@ class patternStats(fullProbPatternWalker):
             G,root,self.leaves[0]
             )
         #offset of marginal expectations from extreme values
-        self.beta_l=self.low_child_prior-(1-self.root_prior)*self.root_flip_rate
+        self.beta_l=self.a_low-(1-self.a_root)*self.Gamma_root
         #beta_h not used in paper any more (set ot 0), but result still valid
-        self.beta_h=(1-self.root_prior)*self.root_flip_rate+self.root_prior-\
-            self.high_child_prior
+        self.beta_h=(1-self.a_root)*self.Gamma_root+self.a_root-\
+            self.a_high
 
     def expected_part_dist(self):
         """
@@ -502,9 +502,9 @@ class patternStats(fullProbPatternWalker):
         L=self.pattern_len
         c=self.c
         h=self.h
-        a=self.root_prior
-        Gammap=self.root_flip_rate
-        Gamma=self.flip_rate
+        a=self.a_root
+        Gammap=self.Gamma_root
+        Gamma=self.Gamma
         Delta=self.overlap
         beta_h=self.beta_h
         beta_l=self.beta_l
@@ -536,7 +536,7 @@ class patternStats(fullProbPatternWalker):
         Probability that a given bit of the root pattern is different from
         the same bit in a Part pattern
         """
-        a=self.root_prior
+        a=self.a_root
         return 2*(1-a)*Gammap+a-a_j
 
     def expected_root_to_part_distance(self):
@@ -546,9 +546,9 @@ class patternStats(fullProbPatternWalker):
         L=self.pattern_len
         c=self.c
         h=self.h
-        a=self.root_prior
-        Gammap=self.root_flip_rate
-        Gamma=self.flip_rate
+        a=self.a_root
+        Gammap=self.Gamma_root
+        Gamma=self.Gamma
         Delta=self.overlap
         beta_h=self.beta_h
         beta_l=self.beta_l
@@ -574,9 +574,9 @@ class patternStats(fullProbPatternWalker):
         L=self.pattern_len
         c=self.c
         h=self.h
-        a=self.root_prior
-        Gammap=self.root_flip_rate
-        Gamma=self.flip_rate
+        a=self.a_root
+        Gammap=self.Gamma_root
+        Gamma=self.Gamma
         Delta=self.overlap
         beta_h=self.beta_h
         beta_l=self.beta_l
@@ -636,7 +636,7 @@ def mutate_pattern(pattern,gamma,parent_prior=0.5,child_prior=None,at_root=False
 def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
     """Returns probabilty function to flip a bit depending on its state and
     marginal expectations of parent and child."""
-    # if root_prior==0.5:
+    # if a_root==0.5:
     #     return lambda state: gamma
     if not at_root:
         #due to the recent rescaling idea
@@ -651,13 +651,13 @@ def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
                 return gamma
         return out_func
 
-def make_tree(lam,pattern_len,flip_rate,overlap,n_max=100,seed=None):
+def make_tree(lam,pattern_len,Gamma,overlap,n_max=100,seed=None):
     #TODO Test this
     # TODO: Still useful?
     def maker():
         H,root=utils.poisson_ditree(lam,n_max)
         target=np.random.choice(utils.leaves(H))
-        G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap,target=target)
+        G=sectionedPatternWalker(H.copy(),root,pattern_len,Gamma,overlap,target=target)
         G.set_weights()
         return H,root,G
     if isinstance(seed,int):
