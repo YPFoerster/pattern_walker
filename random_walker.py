@@ -301,7 +301,6 @@ class fullProbPatternWalker(patternWalker):
     set_patterns-- Propagate binary strings from root to all nodes. Constructing
     intervals of "typical keywords" of size $L/c+2\Delta$ with approprate overlap
     between neighbours.
-    # TODO: rename "section" to "part" in node attributes
 
     Extending variables:
     root_prior -- probability that a given bit of the root pattern is 1
@@ -334,8 +333,8 @@ class fullProbPatternWalker(patternWalker):
             self.low_child_prior=(1-root_prior)*root_flip_rate+root_prior/10
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
-        self.num_sections=self.set_position_numbers(G,root,target)
-        self.sec_size=int(pattern_len/self.num_sections)
+        self.num_parts=self.set_position_numbers(G,root,target)
+        self.part_size=int(pattern_len/self.num_parts)
         self.coordinates_set=False
         super(fullProbPatternWalker,self).__init__(G,root,pattern_len,flip_rate,metric,target)
 
@@ -343,39 +342,48 @@ class fullProbPatternWalker(patternWalker):
         """
         Assign to each node its Part and depth for convenient access.
         """
-        G.nodes[root]['Part']=0 #enumerate children of root and their descendants
+        G.nodes[root]['Part']=0 #root has its own "zeroth" Part
         G.nodes[root]['depth']=0 #distance from root
-        sec_counter=1
-        #we prefer to have the target in section numero 1
+
+        #we prefer to have the target in part numero 1
         target_part= nx.shortest_path(G,root,target)[1]
 
-        G.nodes[target_part]['Part']=sec_counter
+        G.nodes[target_part]['Part']=1
         G.nodes[target_part]['depth']=1
+        #the Part level node defines the Part of all its descendants
         for descendant in nx.descendants(G,target_part):
-            G.nodes[descendant]['Part']=sec_counter
+            G.nodes[descendant]['Part']=1
             G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
-        sec_counter+=1
+        #remaining Parts in any order enumerated from 2
         other_parts=set(G.successors(root))-set([target_part])
 
-        for part in other_parts:
-            G.nodes[part]['Part']=sec_counter
+        for ndx,part in enumerate(other_parts,start=2):
+            G.nodes[part]['Part']=ndx
             G.nodes[part]['depth']=1
             for descendant in nx.descendants(G,part):
-                G.nodes[descendant]['Part']=sec_counter
+                G.nodes[descendant]['Part']=ndx
                 G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
-            sec_counter+=1
-        return sec_counter-1
+        #return number of parts to check all went well
+        return len(other_parts)+1
 
     def set_coordinates(self):
+        """
+        5-vector labels for nodes, for position relative to target.
+        """
+        #height of the tree
         h=nx.shortest_path_length(self,self.root,self.target_node)
-        target_sec=self.nodes[self.target_node]['Part']
+        target_part=self.nodes[self.target_node]['Part']
         for node in self.nodes:
-            if self.nodes[node]['Part']==target_sec:
-                self.nodes[node]['coordinates']=(nx.shortest_path_length(self,self.target_node,node),0,0,0,target_sec-1)
+            #in the target-Part, we don't need to cross the root to get to target
+            if self.nodes[node]['Part']==target_part:
+                self.nodes[node]['coordinates']=(nx.shortest_path_length(self,self.target_node,node),0,0,0,target_part-1)
+            #from root, we need to cross one root-part edge to get to target-part
             elif node==self.root:
                 self.nodes[node]['coordinates']=(h-1,1,0,0,0)
+            #otherwise, we need to go over root
             else:
                 self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root)-1,self.nodes[node]['Part'] )
+        #record that we have assigned coordinates
         self.coordinates_set=True
 
     def set_patterns(self):
@@ -390,39 +398,39 @@ class fullProbPatternWalker(patternWalker):
         last_patterned_gen=[self.root]
         queue=list(self.successors(self.root))
 
-        #Treat branch heads separately, due to different flip rate
+        #Treat Parts separately, due to different flip rate
         for head in queue:
-            sec_ndx=self.nodes[head]['Part']
-            left_sec_bound=(sec_ndx-1)*self.sec_size-self.overlap
-            in_sec = np.array(range(0,min(self.sec_size+2*self.overlap,self.pattern_len)))
-            out_sec = np.array(range(len(in_sec),self.pattern_len))
-            pattern=np.roll(self.nodes[self.root]['pattern'],-left_sec_bound)
-            pattern[in_sec]=mutate_pattern(
-                                        pattern[in_sec],self.root_flip_rate,self.root_prior,self.high_child_prior,at_root=True
+            part_ndx=self.nodes[head]['Part']
+            left_part_bound=(part_ndx-1)*self.part_size-self.overlap
+            in_part = np.array(range(0,min(self.part_size+2*self.overlap,self.pattern_len)))
+            out_part = np.array(range(len(in_part),self.pattern_len))
+            pattern=np.roll(self.nodes[self.root]['pattern'],-left_part_bound)
+            pattern[in_part]=mutate_pattern(
+                                        pattern[in_part],self.root_flip_rate,self.root_prior,self.high_child_prior,at_root=True
                                             )
-            if len(out_sec):
-                pattern[out_sec]=mutate_pattern(
-                                            pattern[out_sec],self.root_flip_rate,self.root_prior,self.low_child_prior,at_root=True
+            if len(out_part):
+                pattern[out_part]=mutate_pattern(
+                                            pattern[out_part],self.root_flip_rate,self.root_prior,self.low_child_prior,at_root=True
                                                 )
-            self.nodes[head]['pattern']=np.roll(pattern,left_sec_bound)
+            self.nodes[head]['pattern']=np.roll(pattern,left_part_bound)
 
         queue=[suc for node in queue for suc in self.successors(node)]
 
         while len(queue)>0:
             for node in queue:
-                sec_ndx=self.nodes[node]['Part']
-                left_sec_bound=(sec_ndx-1)*self.sec_size-self.overlap
-                in_sec = np.array(range(0,min(self.sec_size+2*self.overlap,self.pattern_len)))
-                out_sec = np.array(range(len(in_sec),self.pattern_len))
-                pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_sec_bound)
-                pattern[in_sec]=mutate_pattern(
-                                            pattern[in_sec],self.flip_rate,self.high_child_prior,self.high_child_prior,at_root=False
+                part_ndx=self.nodes[node]['Part']
+                left_part_bound=(part_ndx-1)*self.part_size-self.overlap
+                in_part = np.array(range(0,min(self.part_size+2*self.overlap,self.pattern_len)))
+                out_part = np.array(range(len(in_part),self.pattern_len))
+                pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_part_bound)
+                pattern[in_part]=mutate_pattern(
+                                            pattern[in_part],self.flip_rate,self.high_child_prior,self.high_child_prior,at_root=False
                                                 )
-                if len(out_sec):
-                    pattern[out_sec]=mutate_pattern(
-                                                pattern[out_sec],self.flip_rate,self.low_child_prior,self.low_child_prior,at_root=False
+                if len(out_part):
+                    pattern[out_part]=mutate_pattern(
+                                                pattern[out_part],self.flip_rate,self.low_child_prior,self.low_child_prior,at_root=False
                                                     )
-                self.nodes[node]['pattern']=np.roll(pattern,left_sec_bound)
+                self.nodes[node]['pattern']=np.roll(pattern,left_part_bound)
             queue=[suc for node in queue for suc in self.successors(node)]
 
     def reset_patterns(self):
@@ -543,17 +551,17 @@ class patternStats(fullProbPatternWalker):
                 ] )
             vertical_mean_dist=np.mean( [
                     [
-                        np.linalg.norm(self.nodes[self.parts[sec_ndx]]['pattern']-\
+                        np.linalg.norm(self.nodes[self.parts[part_ndx]]['pattern']-\
                         self.nodes[leaf]['pattern'],ord=1)
-                    for leaf in self.part_leaves[sec_ndx]
+                    for leaf in self.part_leaves[part_ndx]
                     ]
-                for sec_ndx in range(self.c)
+                for part_ndx in range(self.c)
                 ] )
             vertical_mean_distances[iter]=vertical_mean_dist
             root_part_mean_distances[iter]=np.mean([
-                    np.linalg.norm( self.nodes[self.parts[sec_ndx]]['pattern']-\
+                    np.linalg.norm( self.nodes[self.parts[part_ndx]]['pattern']-\
                     self.nodes[self.root]['pattern'],ord=1)
-                for sec_ndx in range(self.c)
+                for part_ndx in range(self.c)
                 ])
             self.reset_patterns()
         return part_mean_distances,vertical_mean_distances,root_part_mean_distances
