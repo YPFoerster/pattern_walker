@@ -57,14 +57,14 @@ class walker(nx.DiGraph):
     True
     """
 
-    def __init__(self,G,init_pos,bias):
+    def __init__(self,G,root,bias):
         """Initialise Digraph as G and instantiate class variables."""
         super(walker, self).__init__()
         self.add_nodes_from(G.nodes(data=True))
         self.add_edges_from(G.edges())
         self.bias=bias
-        self.trace=[init_pos]
-        self.x=init_pos
+        self.trace=[root]
+        self.x=root
         self.t=0
 
     def get_probs(self,site):
@@ -137,8 +137,8 @@ class patternWalker(walker):
 
     count_pattern_duplicates-- Count strings that appear more than once.
 
-    Extending variables:
 
+    Extending variables:
     pattern_len-- Length of binary strings assined to all nodes.
 
     flip_rate-- Probability to change any string bit from one node to its child.
@@ -173,37 +173,37 @@ class patternWalker(walker):
     True
     """
 
-    def __init__(self,G,init_pos,pattern_len,flip_rate,metric=None,search_for=None):
+    def __init__(self,G,root,pattern_len,flip_rate,metric=None,target=None):
         """
         Initialise variables as described, passing G and it's root to the
         the superclass. Calls set_patterns to assign binary strings to all
         nodes.
 
         G-- Graph data, must be compatible with class walker.
-        init_pos-- inital postion of the walker. Will be handled as root of G
+        root-- inital postion of the walker. Will be handled as root of G
         pattern_len-- Length of binary strings assigned to nodes.
         flip_rate-- Probability of changing any bit in the string propagated
             from parent to child node.
         metric-- Metric for binary strings. (if None: Hamming distance)
-        search_for-- The target node of the walker. If None, one is chosen
+        target-- The target node of the walker. If None, one is chosen
             randonly from the leaf nodes.
         """
         #Remember to pass walker.bias=1 in super
         self.hierarchy_backup=G.copy()
-        super(patternWalker,self).__init__(G,init_pos,1.)
+        super(patternWalker,self).__init__(G,root,1.)
         self.pattern_len=pattern_len
         self.flip_rate=flip_rate
-        self.root=init_pos
+        self.root=root
         if metric is None:
             self.metric=hamming_dist
         else:
             self.metric=metric
         self.set_patterns()
-        if search_for is None:
+        if target is None:
             self.target_node=np.random.choice(utils.leaves(self.hierarchy_backup))
             self.target_pattern=self.nodes[self.target_node]['pattern']
         else:
-            self.target_node=search_for
+            self.target_node=target
             self.target_pattern=self.nodes[self.target_node]['pattern']
 
     def set_target(self,node):
@@ -282,17 +282,47 @@ class patternWalker(walker):
         return children,parents,probs
 
 class fullProbPatternWalker(patternWalker):
+    """
+    Evolution of the patternWalker-class. For the root-pattern every marginal
+    expectation is the same ($a$ in manuscript). lower patterns have bits of
+    high ($a_h$) and low ($a_l$) marginal expectation, the number of which
+    is given by [pattern length]/[number of branches] + 2*Overlap ($L/c+2\Delta$)
+    for the former and L less that number ($L(c-1)/c-2\Delta$) for the latter.
+    Overlap ($\Delta$) controls the number of bits which on neihbouring branches
+    both have high expectation $a_h$. root_flip_rate ($\Gamma^\prime$) is the
+    mutation rate from root- to part(i.e.first level)-patterns, flip_rate ($\Gamma$)
+    the mutation rate on lower levels.
 
-    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,\
+    Overriding methods:
+    get_probs-- Return transition probabilities from given node. Overrides
+        patternWalker.get_probs.
+
+    Extending methods:
+    set_patterns-- Propagate binary strings from root to all nodes. Constructing
+    intervals of "typical keywords" of size $L/c+2\Delta$ with approprate overlap
+    between neighbours.
+    # TODO: rename "section" to "part" in node attributes
+
+    Extending variables:
+    root_prior -- probability that a given bit of the root pattern is 1
+
+    root_flip_rate -- probability that a given bit of a Part pattern is
+        is 1 given that the same bit for the root pattern is 0
+
+    low_child_prior -- probability that a given (Part-generic) bit is 1
+
+    high_child_prior -- probability that a given (Part-specific) bit is 1
+    """
+
+    def __init__(self,G,root,pattern_len,root_prior,low_child_prior,\
         high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
-        search_for=None):
-        target=None
-        if search_for is None:
+        target=None):
+        if target is None:
             #In case a seed is fixed, this needs to be done first,
             #otherwise the target changes with the overlap.
             target=np.random.choice(utils.leaves(G))
-        elif search_for in G.nodes:
-            target=search_for
+        elif target in G.nodes:
+            target=target
         self.root_prior=root_prior
         if high_child_prior<=(1-root_prior)*root_flip_rate+root_prior and high_child_prior>=(1-root_prior)*root_flip_rate:
             self.high_child_prior=high_child_prior
@@ -304,46 +334,48 @@ class fullProbPatternWalker(patternWalker):
             self.low_child_prior=(1-root_prior)*root_flip_rate+root_prior/10
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
-        self.num_sections=self.set_position_numbers(G,init_pos,target)
+        self.num_sections=self.set_position_numbers(G,root,target)
         self.sec_size=int(pattern_len/self.num_sections)
         self.coordinates_set=False
-        super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
+        super(fullProbPatternWalker,self).__init__(G,root,pattern_len,flip_rate,metric,target)
 
-    def set_position_numbers(self,G,init_pos,target):
-        ## TODO: rename 'section' to 'part'
-        G.nodes[init_pos]['section']=0 #descendant from which child of root?
-        G.nodes[init_pos]['depth']=0 #distance from root
+    def set_position_numbers(self,G,root,target):
+        """
+        Assign to each node its Part and depth for convenient access.
+        """
+        G.nodes[root]['Part']=0 #enumerate children of root and their descendants
+        G.nodes[root]['depth']=0 #distance from root
         sec_counter=1
         #we prefer to have the target in section numero 1
-        target_part= nx.shortest_path(G,init_pos,target)[1]
+        target_part= nx.shortest_path(G,root,target)[1]
 
-        G.nodes[target_part]['section']=sec_counter
+        G.nodes[target_part]['Part']=sec_counter
         G.nodes[target_part]['depth']=1
         for descendant in nx.descendants(G,target_part):
-            G.nodes[descendant]['section']=sec_counter
-            G.nodes[descendant]['depth']=nx.shortest_path_length(G,init_pos,descendant)
+            G.nodes[descendant]['Part']=sec_counter
+            G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
         sec_counter+=1
-        other_parts=set(G.successors(init_pos))-set([target_part])
+        other_parts=set(G.successors(root))-set([target_part])
 
         for part in other_parts:
-            G.nodes[part]['section']=sec_counter
+            G.nodes[part]['Part']=sec_counter
             G.nodes[part]['depth']=1
             for descendant in nx.descendants(G,part):
-                G.nodes[descendant]['section']=sec_counter
-                G.nodes[descendant]['depth']=nx.shortest_path_length(G,init_pos,descendant)
+                G.nodes[descendant]['Part']=sec_counter
+                G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
             sec_counter+=1
         return sec_counter-1
 
     def set_coordinates(self):
         h=nx.shortest_path_length(self,self.root,self.target_node)
-        target_sec=self.nodes[self.target_node]['section']
+        target_sec=self.nodes[self.target_node]['Part']
         for node in self.nodes:
-            if self.nodes[node]['section']==target_sec:
+            if self.nodes[node]['Part']==target_sec:
                 self.nodes[node]['coordinates']=(nx.shortest_path_length(self,self.target_node,node),0,0,0,target_sec-1)
             elif node==self.root:
                 self.nodes[node]['coordinates']=(h-1,1,0,0,0)
             else:
-                self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root)-1,self.nodes[node]['section'] )
+                self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root)-1,self.nodes[node]['Part'] )
         self.coordinates_set=True
 
     def set_patterns(self):
@@ -360,7 +392,7 @@ class fullProbPatternWalker(patternWalker):
 
         #Treat branch heads separately, due to different flip rate
         for head in queue:
-            sec_ndx=self.nodes[head]['section']
+            sec_ndx=self.nodes[head]['Part']
             left_sec_bound=(sec_ndx-1)*self.sec_size-self.overlap
             in_sec = np.array(range(0,min(self.sec_size+2*self.overlap,self.pattern_len)))
             out_sec = np.array(range(len(in_sec),self.pattern_len))
@@ -378,7 +410,7 @@ class fullProbPatternWalker(patternWalker):
 
         while len(queue)>0:
             for node in queue:
-                sec_ndx=self.nodes[node]['section']
+                sec_ndx=self.nodes[node]['Part']
                 left_sec_bound=(sec_ndx-1)*self.sec_size-self.overlap
                 in_sec = np.array(range(0,min(self.sec_size+2*self.overlap,self.pattern_len)))
                 out_sec = np.array(range(len(in_sec),self.pattern_len))
@@ -402,23 +434,23 @@ class patternStats(fullProbPatternWalker):
     """
     Wrapper for statistical properties of patterns, analytical and simulated.
     """
-    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,\
+    def __init__(self,G,root,pattern_len,root_prior,low_child_prior,\
         high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
-        search_for=None):
+        target=None):
         super(patternStats, self).__init__(
-            G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,\
-                overlap,flip_rate,root_flip_rate,metric=None,search_for=None
+            G,root,pattern_len,root_prior,low_child_prior,high_child_prior,\
+                overlap,flip_rate,root_flip_rate,metric=None,target=None
                 )
         self.leaves=utils.leaves(G)
-        self.parts=list(nx.neighbors(G,init_pos))
+        self.parts=list(nx.neighbors(G,root))
         self.part_leaves=[
             [node for node in  nx.descendants(G,part) if node in self.leaves]
             for part in self.parts
             ]
 
-        self.c=len(list(self.successors(init_pos)))
+        self.c=len(list(self.successors(root)))
         self.h=nx.shortest_path_length(
-            G,init_pos,self.leaves[0]
+            G,root,self.leaves[0]
             )
         #offset of marginal expectations from extreme values
         self.beta_l=self.low_child_prior-(1-self.root_prior)*self.root_flip_rate
@@ -563,7 +595,7 @@ def make_tree(lam,pattern_len,flip_rate,overlap,n_max=100,seed=None):
     def maker():
         H,root=utils.poisson_ditree(lam,n_max)
         target=np.random.choice(utils.leaves(H))
-        G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap,search_for=target)
+        G=sectionedPatternWalker(H.copy(),root,pattern_len,flip_rate,overlap,target=target)
         G.set_weights()
         return H,root,G
     if isinstance(seed,int):
