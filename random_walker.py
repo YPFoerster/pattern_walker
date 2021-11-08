@@ -224,13 +224,14 @@ class patternWalker(walker):
         self.nodes[self.root]['pattern']=np.random.randint(
                                                         0,2,self.pattern_len
                                                         )
+        mutation_probs=self.mutation_probs()
         last_patterned_gen=[self.root]
         queue=list(self.successors(self.root))
         while len(queue)>0:
             for node in queue:
                 pattern=self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern']
-                self.nodes[node]['pattern']=mutate_pattern(
-                                                pattern,self.Gamma
+                self.nodes[node]['pattern']=self.mutate_pattern(
+                                                pattern,mutation_probs
                                                 )
             queue=[suc for node in queue for suc in self.successors(node)]
 
@@ -280,6 +281,17 @@ class patternWalker(walker):
         for key in probs.keys():
             probs[key]/=denominator
         return children,parents,probs
+
+    def mutation_probs(self):
+        out=[ self.Gamma,self.Gamma ]
+        return out
+
+    def mutate_pattern(self,pattern,mutation_probs):
+        """Expect a binary string and flip every entry with probability gamma,
+        modified by the marginal expectation of each bit."""
+        pattern=list(pattern)
+        return np.array([ 1-x if np.random.random()<mutation_probs[x] else x for x in pattern ])
+
 
 class fullProbPatternWalker(patternWalker):
     """
@@ -482,12 +494,6 @@ class fullProbPatternWalker(patternWalker):
         else:
             out=[a_child*self.Gamma,0]
         return out
-
-    def mutate_pattern(self,pattern,mutation_probs):
-        """Expect a binary string and flip every entry with probability gamma,
-        modified by the marginal expectation of each bit."""
-        pattern=list(pattern)
-        return np.array([ 1-x if np.random.random()<mutation_probs[x] else x for x in pattern ])
 
     def reset_patterns(self):
         #Be sure that coordinates are set again after calling nx.clear()
