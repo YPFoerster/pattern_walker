@@ -14,7 +14,7 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'fullProbPatternWalker', 'sectionedPatternWalker', 'SRPWalker', 'make_tree',
+    'walker', 'patternWalker', 'fullProbPatternWalker', 'patternStats', 'make_tree',
     'mutate_pattern'
     ]
 
@@ -283,35 +283,68 @@ class patternWalker(walker):
 
 class fullProbPatternWalker(patternWalker):
 
-    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,search_for=None):
+    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,\
+        high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
+        search_for=None):
         target=None
         if search_for is None:
-            #In case a seed is fixed, this needs to be done first, otherwise
+            #In case a seed is fixed, this needs to be done first,
             #otherwise the target changes with the overlap.
             target=np.random.choice(utils.leaves(G))
         elif search_for in G.nodes:
             target=search_for
         self.root_prior=root_prior
-        self.high_child_prior=high_child_prior
-        self.low_child_prior=low_child_prior
+        if high_child_prior<=(1-root_prior)*root_flip_rate+root_prior and high_child_prior>=(1-root_prior)*root_flip_rate:
+            self.high_child_prior=high_child_prior
+        else:
+            self.high_child_prior=(1-root_prior)*root_flip_rate+root_prior
+        if low_child_prior>=(1-root_prior)*root_flip_rate and low_child_prior<=(1-root_prior)*root_flip_rate+root_prior:
+            self.low_child_prior=low_child_prior
+        else:
+            self.low_child_prior=(1-root_prior)*root_flip_rate+root_prior/10
         self.overlap=overlap
         self.root_flip_rate=root_flip_rate
-        self.num_sections=self.set_position_numbers(G,init_pos)
+        self.num_sections=self.set_position_numbers(G,init_pos,target)
         self.sec_size=int(pattern_len/self.num_sections)
+        self.coordinates_set=False
         super(fullProbPatternWalker,self).__init__(G,init_pos,pattern_len,flip_rate,metric,target)
-    def set_position_numbers(self,G,init_pos):
+
+    def set_position_numbers(self,G,init_pos,target):
+        ## TODO: rename 'section' to 'part'
         G.nodes[init_pos]['section']=0 #descendant from which child of root?
         G.nodes[init_pos]['depth']=0 #distance from root
-        section_heads=G.successors(init_pos)
         sec_counter=1
-        for head in section_heads:
-            G.nodes[head]['section']=sec_counter
-            G.nodes[head]['depth']=1
-            for descendant in nx.descendants(G,head):
+        #we prefer to have the target in section numero 1
+        target_part= nx.shortest_path(G,init_pos,target)[1]
+
+        G.nodes[target_part]['section']=sec_counter
+        G.nodes[target_part]['depth']=1
+        for descendant in nx.descendants(G,target_part):
+            G.nodes[descendant]['section']=sec_counter
+            G.nodes[descendant]['depth']=nx.shortest_path_length(G,init_pos,descendant)
+        sec_counter+=1
+        other_parts=set(G.successors(init_pos))-set([target_part])
+
+        for part in other_parts:
+            G.nodes[part]['section']=sec_counter
+            G.nodes[part]['depth']=1
+            for descendant in nx.descendants(G,part):
                 G.nodes[descendant]['section']=sec_counter
                 G.nodes[descendant]['depth']=nx.shortest_path_length(G,init_pos,descendant)
             sec_counter+=1
         return sec_counter-1
+
+    def set_coordinates(self):
+        h=nx.shortest_path_length(self,self.root,self.target_node)
+        target_sec=self.nodes[self.target_node]['section']
+        for node in self.nodes:
+            if self.nodes[node]['section']==target_sec:
+                self.nodes[node]['coordinates']=(nx.shortest_path_length(self,self.target_node,node),0,0,0,target_sec-1)
+            elif node==self.root:
+                self.nodes[node]['coordinates']=(h-1,1,0,0,0)
+            else:
+                self.nodes[node]['coordinates']=( h-1,1,1,nx.shortest_path_length(self,node,self.root)-1,self.nodes[node]['section'] )
+        self.coordinates_set=True
 
     def set_patterns(self):
         """
@@ -360,144 +393,138 @@ class fullProbPatternWalker(patternWalker):
                 self.nodes[node]['pattern']=np.roll(pattern,left_sec_bound)
             queue=[suc for node in queue for suc in self.successors(node)]
 
-class sectionedPatternWalker(patternWalker):
-    """
-    Example:
-    >>> from networkx.generators.classic import balanced_tree
-    >>> G=balanced_tree(1,10,create_using=nx.DiGraph)
-    >>> root=0
-    >>> w=sectionedPatternWalker(G,root,pattern_len=20,flip_rate=0.005,sections=0.5)
-    >>> 0<= w.num_pattern_duplicates()
-    True
-    >>> w.set_weights()
-    >>> for i in range(20):
-    ...     w.step()
-    >>> len(w.trace)
-    21
-    >>> w.reset_walker()
-    >>> w.trace
-    [0]
-    >>> w.trace==[w.x]
-    True
-    """
-
-    def __init__(self,G,init_pos,pattern_len,flip_rate,sections,metric=None,search_for=None):
-        target=None
-        if search_for is None:
-            #In case a seed is fixed, this needs to be done first, otherwise
-            #otherwise the target changes with the overlap.
-            target=np.random.choice(utils.leaves(G))
-        elif search_for in G.nodes:
-            target=search_for
-
-        self.sections=self.sections_prep(G,init_pos,pattern_len,sections)
-        self.num_sections=len(self.sections)
-        full_pattern_len=self.sections[-1][-1]-self.sections[0][0]
-        super(sectionedPatternWalker,self).__init__(G,init_pos,full_pattern_len,flip_rate,metric,target)
-
-
-    def set_patterns(self):
-        """
-        THIS METHOD OVERLOADS THE METHOD OF THE SAME NAME IN PatternWalker.
-        Assigns a binary string to every node in the graph, successively by
-        generation/level. A pattern/string is generated based on its parent
-        string by the function mutate_pattern.
-        """
-
-        queue=list(self.successors(self.root))
-        self.nodes[self.root]['pattern']=list(np.random.randint(
-                                                        0,2,self.pattern_len
-                                                        ))
-        last_patterned_gen=[self.root]
-
-        while len(queue)>0:
-            for node in queue:
-                pattern=self.nodes[list(self.predecessors(node))[0]]['pattern']
-                self.nodes[node]['pattern']=mutate_pattern(
-                                                pattern,self.flip_rate
-                                                )
-            queue=[suc for node in queue for suc in self.successors(node)]
-
-        main_brances=list(self.successors(self.root))
-        for i in range(self.num_sections):
-            self.nodes[main_brances[i]]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[main_brances[i]]['pattern'][ind] for ind in range(self.pattern_len) ]
-            #self.nodes[main_brances[i]]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
-            #self.nodes[main_brances[i]]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
-
-            for node in nx.descendants(self,main_brances[i]):
-                self.nodes[node]['pattern']=[ 0 if ind < self.sections[i][0] or ind>=self.sections[i][1] else self.nodes[node]['pattern'][ind] for ind in range(self.pattern_len) ]
-                #self.nodes[node]['pattern'][:section_boundaries[i]]=[0]*section_boundaries[i]
-                #self.nodes[node]['pattern'][section_boundaries[i+1]:section_boundaries[-1]]=[0]*(section_boundaries[i+1]-section_boundaries[-1])
-
-    def sections_prep(self,G,init_pos,pattern_len,sections):
-        out=[]
-        if isinstance(sections, list):
-            # TODO: More checks recommended to ensure that number of sections is compatible with the hierarchy,that endpoints are included and that we don't overshoot.
-            if isinstance(sections[0],int):
-                for ind in range(len(sections)-1):
-                    out.append( (sections[ind],sections[ind+1]) )
-            elif isinstance(sections[0], tuple):
-                out=sections
-
-            out[-1]=(out[-1][0],pattern_len)
-            sections_compatible=len(list(G.successors(init_pos)))-len(out)
-            if sections_compatible>0:
-                out=out+sections_compatible*[out[-1]]
-            elif sections_compatible<0:
-                out=out[:sections_compatible]
-                out[-1]=(out[-1][0],pattern_len)
-        elif isinstance(sections,float):
-            out=sections_by_overlap(pattern_len,len(list(G.successors(init_pos))),sections)
-        return out
-
-
-class SRPWalker(sectionedPatternWalker):
-    """
-    Example:
-    >>> from networkx.generators.classic import balanced_tree
-    >>> G=balanced_tree(1,10,create_using=nx.DiGraph)
-    >>> root=0
-    >>> w=SRPWalker(G,root,pattern_len=20,flip_rate=0.005,sections=0.5,num_refs=2)
-    >>> 0<= w.num_pattern_duplicates()
-    True
-    >>> w.set_weights()
-    >>> for i in range(20):
-    ...     w.step()
-    >>> len(w.trace)
-    21
-    >>> w.reset_walker()
-    >>> w.trace
-    [0]
-    >>> w.trace==[w.x]
-    True
-    >>> w.reset_patterns()
-    >>> w.references[0] in w.edges()
-    True
-    """
-    def __init__(self,G,init_pos,pattern_len,flip_rate,sections,num_refs,metric=None,search_for=None):
-        target=None
-        if search_for is None:
-            #In case a seed is fixed, this needs to be done first, otherwise
-            #otherwise the target changes with the overlap.
-            target=np.random.choice(utils.leaves(G))
-        elif search_for in G.nodes:
-            target=search_for
-        self.references=[np.random.choice(G.nodes(),2) for _ in range(num_refs)]
-        super(SRPWalker,self).__init__(G,init_pos,pattern_len,flip_rate,sections,metric,target)
-        self.add_edges_from(self.references)
-
     def reset_patterns(self):
-        """
-        Like set_patterns, but first resets edge data, because set_weights
-        introduces edges blurring the hierarchy on that set_patterns relies.
-        """
-        self.clear()
-        self.add_edges_from(self.hierarchy_backup.edges())
-        self.set_patterns()
-        self.set_target(self.target_node)
-        self.add_edges_from(self.references)
-        self.set_weights()
+        patternWalker.reset_patterns(self)
+        if self.coordinates_set:
+            self.set_coordinates()
 
+class patternStats(fullProbPatternWalker):
+    """
+    Wrapper for statistical properties of patterns, analytical and simulated.
+    """
+    def __init__(self,G,init_pos,pattern_len,root_prior,low_child_prior,\
+        high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
+        search_for=None):
+        super(patternStats, self).__init__(
+            G,init_pos,pattern_len,root_prior,low_child_prior,high_child_prior,\
+                overlap,flip_rate,root_flip_rate,metric=None,search_for=None
+                )
+        self.leaves=utils.leaves(G)
+        self.parts=list(nx.neighbors(G,init_pos))
+        self.part_leaves=[
+            [node for node in  nx.descendants(G,part) if node in self.leaves]
+            for part in self.parts
+            ]
+
+        self.c=len(list(self.successors(init_pos)))
+        self.h=nx.shortest_path_length(
+            G,init_pos,self.leaves[0]
+            )
+        #offset of marginal expectations from extreme values
+        self.beta_l=self.low_child_prior-(1-self.root_prior)*self.root_flip_rate
+        #beta_h not used in paper any more (set ot 0), but result still valid
+        self.beta_h=(1-self.root_prior)*self.root_flip_rate+self.root_prior-\
+            self.high_child_prior
+
+    def expected_part_dist(self):
+        L=self.pattern_len
+        c=self.c
+        h=self.h
+        a=self.root_prior
+        Gammap=self.root_flip_rate
+        Gamma=self.flip_rate
+        Delta=self.overlap
+        beta_h=self.beta_h
+        beta_l=self.beta_l
+
+        if beta_h==0:
+            if Delta<=L*(c-2)/(2*c):
+                return 2*L*Gammap*(1-Gammap)*\
+                    (1-a)+2*L/c*(a-beta_l)*((c-2)*beta_l/a+1)-\
+                    4*Delta*(a-beta_l)*beta_l/a
+            else:
+                return 2*L*Gammap*(1-Gammap)*(1-a)+2*L/c*(c-1)*(a-beta_l)-\
+                    4*Delta*(a-beta_l)
+
+        else:
+            if Delta<=L*(c-2)/(2*c):
+                return 2*L*Gammap*(1-Gammap)*(1-a)+\
+                    2*L/c*(c*beta_l*(a-beta_l)/a+a+beta_l-\
+                    beta_h-2*beta_l*(2*a-beta_l-beta_h)/a)+\
+                    4*Delta/a*((a-beta_h)*beta_h-(a-beta_l)*beta_l)
+            else:
+                return 2*L*Gammap*(1-Gammap)*(1-a)-\
+                2*L/c*(a-beta_h)/a*( (beta_h+2*beta_l)*c-2*(beta_h+beta_l) )+\
+                2*L/c*(c-1)*(a+beta_l-beta_h)+\
+                4*Delta*(2/a*(a-beta_h)*(beta_h+beta_l)-a-beta_l+beta_h)
+
+
+    def root_to_part_rate(self,a_j,Gammap):
+        a=self.root_prior
+        return 2*(1-a)*Gammap+a-a_j
+
+    def expected_root_to_part_distance(self):
+        L=self.pattern_len
+        c=self.c
+        h=self.h
+        a=self.root_prior
+        Gammap=self.root_flip_rate
+        Gamma=self.flip_rate
+        Delta=self.overlap
+        beta_h=self.beta_h
+        beta_l=self.beta_l
+
+        a_l=(1-a)*Gammap+beta_l
+        a_h=(1-a)*Gammap+a
+        return self.root_to_part_rate(a_h,Gammap)*(L/c+2*Delta)+\
+            self.root_to_part_rate(a_l,Gammap)*(L-L/c-2*Delta)
+
+
+    def vertical_rate(self,a_j,Gamma,h):
+        return 2*a_j*(1-a_j)*(1-(1-Gamma)**float(h-1))
+
+    def expected_vertical_distance(self):
+        L=self.pattern_len
+        c=self.c
+        h=self.h
+        a=self.root_prior
+        Gammap=self.root_flip_rate
+        Gamma=self.flip_rate
+        Delta=self.overlap
+        beta_h=self.beta_h
+        beta_l=self.beta_l
+
+        a_l=(1-a)*Gammap+beta_l
+        a_h=(1-a)*Gammap+a
+        return self.vertical_rate(a_h,Gamma,h)*(L/c+2*Delta)+\
+            self.vertical_rate(a_l,Gamma,h)*(L-L/c-2*Delta)
+
+    def sample_distances(self,number_of_samples):
+        part_mean_distances=np.zeros(number_of_samples)
+        vertical_mean_distances=np.zeros(number_of_samples)
+        root_part_mean_distances=np.zeros(number_of_samples)
+        for iter in range(number_of_samples):
+            part_mean_distances[iter]=np.mean([
+                    np.linalg.norm(self.nodes[self.parts[n1]]['pattern']-\
+                    self.nodes[self.parts[n1+1]]['pattern'],ord=1)
+                for n1 in range(len(self.parts)-1)
+                ] )
+            vertical_mean_dist=np.mean( [
+                    [
+                        np.linalg.norm(self.nodes[self.parts[sec_ndx]]['pattern']-\
+                        self.nodes[leaf]['pattern'],ord=1)
+                    for leaf in self.part_leaves[sec_ndx]
+                    ]
+                for sec_ndx in range(self.c)
+                ] )
+            vertical_mean_distances[iter]=vertical_mean_dist
+            root_part_mean_distances[iter]=np.mean([
+                    np.linalg.norm( self.nodes[self.parts[sec_ndx]]['pattern']-\
+                    self.nodes[self.root]['pattern'],ord=1)
+                for sec_ndx in range(self.c)
+                ])
+            self.reset_patterns()
+        return part_mean_distances,vertical_mean_distances,root_part_mean_distances
 
 def hamming_dist(a,b):
     """Return number of non-equal entries of a and b."""
@@ -521,7 +548,7 @@ def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
         #due to the recent rescaling idea
         gamma*=parent_prior
     if parent_prior==0:
-        return lambda state: gamma
+        return lambda state: (1-state)*gamma #to be checked
     else:
         def out_func(state):
             if state:
@@ -530,14 +557,9 @@ def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
                 return gamma
         return out_func
 
-def sections_by_overlap(pattern_len,num_sections,frac_overlap):
-    #TODO Test this
-    overlap=int(frac_overlap*pattern_len)
-    sections=[ ( i*(pattern_len-overlap),i*(pattern_len-overlap)+pattern_len ) for i in range(num_sections)]
-    return sections
-
 def make_tree(lam,pattern_len,flip_rate,overlap,n_max=100,seed=None):
     #TODO Test this
+    # TODO: Still useful?
     def maker():
         H,root=utils.poisson_ditree(lam,n_max)
         target=np.random.choice(utils.leaves(H))
