@@ -399,7 +399,8 @@ class fullProbPatternWalker(patternWalker):
                                             )
         last_patterned_gen=[self.root]
         queue=list(self.successors(self.root))
-
+        mutation_probs_a_high=self.root_mutation_probs(self.a_high)
+        mutation_probs_a_low=self.root_mutation_probs(self.a_low)
         #Treat Parts separately, due to different flip rate
         for head in queue:
             part_ndx=self.nodes[head]['Part']
@@ -415,19 +416,21 @@ class fullProbPatternWalker(patternWalker):
             out_part = np.array(range(len(in_part),self.pattern_len))
 
             #mutate (1) specific and (2) generic bits separately
-            pattern[in_part]=mutate_pattern(
-                                        pattern[in_part],self.Gamma_root,self.a_root,self.a_high,at_root=True
-                                            )
+            pattern[in_part]=self.mutate_pattern(
+                                        pattern[in_part],mutation_probs_a_high
+                                        )
             if len(out_part):
-                pattern[out_part]=mutate_pattern(
-                                            pattern[out_part],self.Gamma_root,self.a_root,self.a_low,at_root=True
-                                                )
+                pattern[out_part]=self.mutate_pattern(
+                                            pattern[out_part],mutation_probs_a_low
+                                            )
             #undo rolling to have bits in the right positions
             self.nodes[head]['pattern']=np.roll(pattern,left_part_bound)
 
         #prepare queue for next level of patterns: go over nodes currently in
         #the queue, make new queue with their successors
         queue=[successor for node in queue for successor in self.successors(node)]
+        mutation_probs_a_high=self.part_mutation_probs(self.a_high)
+        mutation_probs_a_low=self.part_mutation_probs(self.a_low)
 
         while len(queue)>0:
             for node in queue:
@@ -437,24 +440,54 @@ class fullProbPatternWalker(patternWalker):
                 #firstly, take parent pattern and roll so that the leftmost specific
                 #bit is at 0 index 0
                 left_part_bound=(part_ndx-1)*self.part_size-self.overlap
-                pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_part_bound)
+                pattern=np.roll(
+                    self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],\
+                    -left_part_bound
+                    )
 
                 #define index sets for specific and generic bits
                 in_part = np.array(range(0,min(self.part_size+2*self.overlap,self.pattern_len)))
                 out_part = np.array(range(len(in_part),self.pattern_len))
 
                 #mutate (1) specific and (2) generic bits separately
-                pattern[in_part]=mutate_pattern(
-                                            pattern[in_part],self.Gamma,self.a_high,self.a_high,at_root=False
-                                                )
+                pattern[in_part]=self.mutate_pattern(
+                                            pattern[in_part],mutation_probs_a_high
+                                            )
                 if len(out_part):
-                    pattern[out_part]=mutate_pattern(
-                                                pattern[out_part],self.Gamma,self.a_low,self.a_low,at_root=False
+                    pattern[out_part]=self.mutate_pattern(
+                                                pattern[out_part],mutation_probs_a_low
                                                     )
                 # undo rollling
                 self.nodes[node]['pattern']=np.roll(pattern,left_part_bound)
             #new queue as above
             queue=[suc for node in queue for suc in self.successors(node)]
+
+    def gen_mutation_probs(self,a_parent,a_child,Gamma):
+        if a_parent:
+            out=[ Gamma,(1-(a_child-(1-a_parent)*Gamma)/a_parent) ]
+        else:
+            out=[ Gamma,0 ]
+        return out
+
+    def root_mutation_probs(self,a_child):
+        if self.a_root:
+            out=[self.Gamma_root,1-(a_child-(1-self.a_root)*self.Gamma_root)/self.a_root]
+        else:
+            out=[self.Gamma_root,0]
+        return out
+
+    def part_mutation_probs(self,a_child):
+        if a_child:
+            out=[a_child*self.Gamma,(1-a_child)*self.Gamma]
+        else:
+            out=[a_child*self.Gamma,0]
+        return out
+
+    def mutate_pattern(self,pattern,mutation_probs):
+        """Expect a binary string and flip every entry with probability gamma,
+        modified by the marginal expectation of each bit."""
+        pattern=list(pattern)
+        return np.array([ 1-x if np.random.random()<mutation_probs[x] else x for x in pattern ])
 
     def reset_patterns(self):
         #Be sure that coordinates are set again after calling nx.clear()
