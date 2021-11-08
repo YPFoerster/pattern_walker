@@ -302,6 +302,8 @@ class fullProbPatternWalker(patternWalker):
     intervals of "typical keywords" of size $L/c+2\Delta$ with approprate overlap
     between neighbours.
 
+    reset_patterns-- call parent function, then set_coordinates
+
     Extending variables:
     root_prior -- probability that a given bit of the root pattern is 1
 
@@ -401,10 +403,18 @@ class fullProbPatternWalker(patternWalker):
         #Treat Parts separately, due to different flip rate
         for head in queue:
             part_ndx=self.nodes[head]['Part']
+            #define index ranges for (Part-)"specific" and "generic" bits
+
+            #firstly, take parent pattern and roll so that the leftmost specific
+            #bit is at 0 index 0
             left_part_bound=(part_ndx-1)*self.part_size-self.overlap
+            pattern=np.roll(self.nodes[self.root]['pattern'],-left_part_bound)
+
+            #define index sets for specific and generic bits
             in_part = np.array(range(0,min(self.part_size+2*self.overlap,self.pattern_len)))
             out_part = np.array(range(len(in_part),self.pattern_len))
-            pattern=np.roll(self.nodes[self.root]['pattern'],-left_part_bound)
+
+            #mutate (1) specific and (2) generic bits separately
             pattern[in_part]=mutate_pattern(
                                         pattern[in_part],self.root_flip_rate,self.root_prior,self.high_child_prior,at_root=True
                                             )
@@ -412,17 +422,28 @@ class fullProbPatternWalker(patternWalker):
                 pattern[out_part]=mutate_pattern(
                                             pattern[out_part],self.root_flip_rate,self.root_prior,self.low_child_prior,at_root=True
                                                 )
+            #undo rolling to have bits in the right positions
             self.nodes[head]['pattern']=np.roll(pattern,left_part_bound)
 
-        queue=[suc for node in queue for suc in self.successors(node)]
+        #prepare queue for next level of patterns: go over nodes currently in
+        #the queue, make new queue with their successors
+        queue=[successor for node in queue for successor in self.successors(node)]
 
         while len(queue)>0:
             for node in queue:
                 part_ndx=self.nodes[node]['Part']
+                #define index ranges for (Part-)"specific" and "generic" bits
+
+                #firstly, take parent pattern and roll so that the leftmost specific
+                #bit is at 0 index 0
                 left_part_bound=(part_ndx-1)*self.part_size-self.overlap
+                pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_part_bound)
+
+                #define index sets for specific and generic bits
                 in_part = np.array(range(0,min(self.part_size+2*self.overlap,self.pattern_len)))
                 out_part = np.array(range(len(in_part),self.pattern_len))
-                pattern=np.roll(self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],-left_part_bound)
+
+                #mutate (1) specific and (2) generic bits separately
                 pattern[in_part]=mutate_pattern(
                                             pattern[in_part],self.flip_rate,self.high_child_prior,self.high_child_prior,at_root=False
                                                 )
@@ -430,17 +451,20 @@ class fullProbPatternWalker(patternWalker):
                     pattern[out_part]=mutate_pattern(
                                                 pattern[out_part],self.flip_rate,self.low_child_prior,self.low_child_prior,at_root=False
                                                     )
+                # undo rollling
                 self.nodes[node]['pattern']=np.roll(pattern,left_part_bound)
+            #new queue as above
             queue=[suc for node in queue for suc in self.successors(node)]
 
     def reset_patterns(self):
+        #Be sure that coordinates are set again after calling nx.clear()
         patternWalker.reset_patterns(self)
         if self.coordinates_set:
             self.set_coordinates()
 
 class patternStats(fullProbPatternWalker):
     """
-    Wrapper for statistical properties of patterns, analytical and simulated.
+    Wrapper class for statistical properties of patterns, analytical and simulated.
     """
     def __init__(self,G,root,pattern_len,root_prior,low_child_prior,\
         high_child_prior,overlap,flip_rate,root_flip_rate,metric=None,\
@@ -449,13 +473,15 @@ class patternStats(fullProbPatternWalker):
             G,root,pattern_len,root_prior,low_child_prior,high_child_prior,\
                 overlap,flip_rate,root_flip_rate,metric=None,target=None
                 )
+        #the following are handy to have at hand
         self.leaves=utils.leaves(G)
         self.parts=list(nx.neighbors(G,root))
+        #leaves grouped by their parts
         self.part_leaves=[
             [node for node in  nx.descendants(G,part) if node in self.leaves]
             for part in self.parts
             ]
-
+        #coordination number and height of tree
         self.c=len(list(self.successors(root)))
         self.h=nx.shortest_path_length(
             G,root,self.leaves[0]
@@ -467,6 +493,12 @@ class patternStats(fullProbPatternWalker):
             self.high_child_prior
 
     def expected_part_dist(self):
+        """
+        Analytically expected pattern distance between neighbouring
+        parts.
+        """
+
+        #to simplify expressions
         L=self.pattern_len
         c=self.c
         h=self.h
@@ -500,10 +532,17 @@ class patternStats(fullProbPatternWalker):
 
 
     def root_to_part_rate(self,a_j,Gammap):
+        """
+        Probability that a given bit of the root pattern is different from
+        the same bit in a Part pattern
+        """
         a=self.root_prior
         return 2*(1-a)*Gammap+a-a_j
 
     def expected_root_to_part_distance(self):
+        """
+        Expected distance between root pattern and any of the part patterns
+        """
         L=self.pattern_len
         c=self.c
         h=self.h
@@ -521,9 +560,17 @@ class patternStats(fullProbPatternWalker):
 
 
     def vertical_rate(self,a_j,Gamma,h):
+        """
+        Given a pattern (not the root) and an h-th degree descendant, return
+        probability that a given bit is differnt between the patterns
+        """
         return 2*a_j*(1-a_j)*(1-(1-Gamma)**float(h-1))
 
     def expected_vertical_distance(self):
+        """
+        Analytically expected pattern distance between a part-pattern and a
+        leaf pattern of the same part.
+        """
         L=self.pattern_len
         c=self.c
         h=self.h
@@ -540,6 +587,13 @@ class patternStats(fullProbPatternWalker):
             self.vertical_rate(a_l,Gamma,h)*(L-L/c-2*Delta)
 
     def sample_distances(self,number_of_samples):
+        """
+        Generate lots of sets patterns, and calculate the average pattern-
+        distance between
+        (1) neighbouring parts
+        (2) parts and their leaf-descendants
+        (3) root and the parts
+        """
         part_mean_distances=np.zeros(number_of_samples)
         vertical_mean_distances=np.zeros(number_of_samples)
         root_part_mean_distances=np.zeros(number_of_samples)
