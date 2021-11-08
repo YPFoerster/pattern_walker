@@ -258,10 +258,9 @@ test_case_dict={
     'diffusion_test_cases':(WalkerDiffusionMFPTTestCase,\
     patterWalkerDiffusionMFPTTestCase,fullprobDiffusionMFTPTTestCase,\
     MeanFieldDiffusionMFTPTTestCase,OverlapMeanFieldDiffusionMFTPTTestCase),
-    'mean_field_test_cases':(MeanFieldMFPTMethodsTestCase,MeanFieldOverlapNumbersTestCase,MeanFieldEqRatiosTestCase)
+    'mean_field_test_cases':(MeanFieldMFPTMethodsTestCase,MeanFieldOverlapNumbersTestCase,MeanFieldEqRatiosTestCase),
+    'patternStats_test_cases':(patternTestCase,)
     }
-    # 'patternStats_test_cases':(patternTestCase,)
-    # }
 
 def load_tests(loader, test_cases):
     suite=unittest.TestSuite()
