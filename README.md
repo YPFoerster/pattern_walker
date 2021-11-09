@@ -11,6 +11,8 @@ trees and derived patternwalker classes that compute the complexity $C$ associat
 
 ## Usage
 
+Some basic commands involving the main classes and module functions. Head over to examples to see them in application.
+
 ### Creating a patternWalker instance
 
 First create rooted tree with edges directed away from the root (this is imporant as it defines a hierarchy on the nodes). For instance, use the utils function balanced_ditree to make a $c$-ary tree of height $h$ with directed edges
