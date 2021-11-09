@@ -15,6 +15,8 @@ path_direction_profile-- Return list of step directions for a path and reference
 stationary_distribution-- Return the dominant eigenvector of a Markov chain.
 normalised_laplacian-- Return normalised_laplacian Laplacian of a Markov chain.
 mfpt-- Return mean first passage times between set of Markov chain states.
+hamming_dist-- Return Hamming distance of two binary strings.
+
 
 # NOTE: The following five functions were introduced to explore a certain
 concepts and are not employed at the moment.
@@ -54,7 +56,7 @@ __all__ = [
     'local_eq_probs','eq_prob_cluster_ratios', 'normalised_laplacian', 'mfpt',\
     'block_indices',\
     'filter_nodes', 'seed_decorator', 'spanning_tree_with_root','tree_weight',\
-    'tree_mfpts', 'cluster_by_branch'
+    'tree_mfpts', 'cluster_by_branch','hamming_dist'
     ]
 
 def random_dag(nodes, edges):
@@ -736,6 +738,10 @@ def filter_nodes(G,attrstr,value):
     ## TODO: see below
     return [node for node,attrdict in G.nodes.items() if attrdict[attrstr]==value]
     #should be identical to filter( lambda x: G.nodes[node][attrstr]==value, G.nodes)
+
+def hamming_dist(a,b):
+    """Return number of non-equal entries of a and b."""
+    return np.linalg.norm(a-b,ord=1)
 
 def timer_decorator(func,args,kwargs):
     @wraps(func)

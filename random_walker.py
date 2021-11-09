@@ -3,8 +3,6 @@ Asymmetric random walkers on a directed graph and some useful functions.
 
 walker-- Basic biased random walker derived from nx.Digraph.
 patternWalker-- Random walker derived from walker, searching a binary pattern.
-hamming_dist-- Return Hamming distance of two binary strings.
-mutate_pattern-- Flip every entry in a binary string with given probability.
 count_pattern_duplicates-- Return number of duplicate patterns of a
     patternWalker.
 """
@@ -14,8 +12,7 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'fullProbPatternWalker', 'patternStats', 'make_tree',
-    'mutate_pattern'
+    'walker', 'patternWalker', 'fullProbPatternWalker', 'patternStats'
     ]
 
 class walker(nx.DiGraph):
@@ -195,7 +192,7 @@ class patternWalker(walker):
         self.Gamma=Gamma
         self.root=root
         if metric is None:
-            self.metric=hamming_dist
+            self.metric=utils.hamming_dist
         else:
             self.metric=metric
         self.set_patterns()
@@ -658,51 +655,6 @@ class patternStats(fullProbPatternWalker):
                 ])
             self.reset_patterns()
         return part_mean_distances,vertical_mean_distances,root_part_mean_distances
-
-def hamming_dist(a,b):
-    """Return number of non-equal entries of a and b."""
-    return np.linalg.norm(a-b,ord=1)
-
-def mutate_pattern(pattern,gamma,parent_prior=0.5,child_prior=None,at_root=False):
-    """Expect a binary string and flip every entry with probability gamma,
-    modified by the marginal expectation of each bit."""
-    if child_prior is None:
-        child_prior=parent_prior
-    flip_prob=flip_probability_handle(gamma,parent_prior,child_prior,at_root)
-    pattern=list(pattern)
-    return np.array([ 1-x if np.random.random()<flip_prob(x) else x for x in pattern ])
-
-def flip_probability_handle(gamma,parent_prior,child_prior,at_root=False):
-    """Returns probabilty function to flip a bit depending on its state and
-    marginal expectations of parent and child."""
-    # if a_root==0.5:
-    #     return lambda state: gamma
-    if not at_root:
-        #due to the recent rescaling idea
-        gamma*=parent_prior
-    if parent_prior==0:
-        return lambda state: (1-state)*gamma #to be checked
-    else:
-        def out_func(state):
-            if state:
-                return 1-(child_prior-(1-parent_prior)*gamma)/parent_prior
-            else:
-                return gamma
-        return out_func
-
-def make_tree(lam,pattern_len,Gamma,overlap,n_max=100,seed=None):
-    #TODO Test this
-    # TODO: Still useful?
-    def maker():
-        H,root=utils.poisson_ditree(lam,n_max)
-        target=np.random.choice(utils.leaves(H))
-        G=sectionedPatternWalker(H.copy(),root,pattern_len,Gamma,overlap,target=target)
-        G.set_weights()
-        return H,root,G
-    if isinstance(seed,int):
-        print('Using seed {}'.format(seed))
-        maker=utils.seed_decorator(maker,seed)
-    return maker()
 
 
 if __name__=="__main__":
