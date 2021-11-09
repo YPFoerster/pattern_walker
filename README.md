@@ -11,7 +11,7 @@ trees and derived patternwalker classes that compute the complexity $C$ associat
 
 ## Usage
 
-Some basic commands involving the main classes and module functions. Head over to examples to see them in application.
+Some basic commands involving the main classes and module functions. Head over to [examples](examples/) to see them in application.
 
 ### Creating a patternWalker instance
 
