@@ -293,6 +293,7 @@ def list_degree_nodes(G,deg,max_num=1):
     >>> len(list_degree_nodes(G,5))
     0
     """
+    # TODO: should be more elegant to write as an application of filter()
     out=[]
     for node in G.nodes():
         if nx.degree(G,node)==deg:
@@ -333,6 +334,7 @@ def downward_current(G,prob_dict,data_key='weight',nodelist=None):
     >>> len(down)==len(G)
     True
     """
+    # TODO: remove?
     out=[]
     if nodelist is None:
         nodelist=G.nodes()
@@ -378,6 +380,7 @@ def upward_current(G,prob_dict,data_key='weight',nodelist=None):
     >>> len(up)==len(G)
     True
     """
+    # TODO: remove?
     out=[]
     if nodelist is None:
         nodelist=G.nodes()
@@ -413,6 +416,7 @@ def path_direction_profile(G,reference,path):
     >>> len(profile)
     19
     """
+    # TODO: remove?
     return [
             -1 if
             nx.shortest_path_length(G,path[i+1],reference)>
