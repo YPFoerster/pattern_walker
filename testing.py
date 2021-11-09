@@ -25,9 +25,9 @@ a_h=(1-a)*Gammap+a-beta_h
 increment=0.1
 H,root=balanced_ditree(c,h)
 leaves_list=leaves(H)
-number_of_samples=100
+number_of_samples=10
 eps=5e-3
-num_cores=4
+num_cores=2
 
 class WalkerDiffusionMFPTTestCase(unittest.TestCase):
     def test_mfpt(self):
