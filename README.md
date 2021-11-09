@@ -78,10 +78,15 @@ $$
 m_{ij} = (\mathbf{I} - \widehat{\mathbf{W}}_{j})^{-1}\mathbf{e}
 \end{align}
 $$
+
 where $\mathbf{I}$ is the unit matrix, $\widehat{\mathbf{W}}_{j}$ is the transition matrix of the walker with row and column of the target-node $j$ removed, and $\mathbf{e}$ is the all-one vector. 
 To use this function, call
 ```python 
 utils.mfpt(Walker,[(source, target)])
+```
+Most commonly, you will want to call
+```python 
+utils.mfpt(Walker,[(Walker.root, Walker.target_node)])
 ```
 The list of source-target pairs can be longer, but the function currently does not check if the same target appears several times (which would be preferrable because it would reduce the number required matrix inversions).
 
