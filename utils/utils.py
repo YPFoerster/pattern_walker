@@ -645,6 +645,22 @@ def mfpt(
                 except np.linalg.LinAlgError:
                     out[pair]=np.nan
 
+    if method=='absorbing_target':
+        #NOTE: currently only for MFPT between root and target
+        W=G.get_transition_matrix(target=G.target_node)
+        #make target absorbing
+        W[-1]=np.zeros(len(W))
+        W[-1,-1]=1
+        #calculate cumulative distribution of FPT up to a cutoff
+        cumulative=[0]
+        W_power=np.eye(len(W))
+        while cumulative[-1]<0.999:
+            W_power=W.dot(W_power)
+            cumulative.append(W_power[0,-1])
+        #PMF of FPT is given by increments of CDF
+        PMF=np.diff(cumulative)
+        out[(G.root,G.target_node)]=np.sum([x*PMF[x] for x in range(len(PMF))])
+
     if method=='eig':
         # NOTE: Not fixed yet.
         trans = nx.to_numpy_matrix(G,weight=weight_str).T #trans_{i,j}=Prob(i|j)= Prob(j->i)
