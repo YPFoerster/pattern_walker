@@ -102,6 +102,20 @@ class walker(nx.DiGraph):
                 [(site,parent,{'weight': probs[parent]}) for parent in parents]
                 )
 
+    def get_transition_matrix(self,target=None,nodelist=None) -> np.array:
+        """
+        Return transition matrix for nodes as given by nodelist. Either target
+        or nodelist must be given.
+        If no nodelist is given, take first row/column for the root and
+        last row/column for the target; all other nodes appear in order of
+        self.nodes(). If nodelist is given, taget kwargs is ignored.
+        """
+        if nodelist is None:
+            if target is None:
+                raise Exception('Either target or nodelist must be set.')
+            nodelist=set(self.nodes)-set([self.root])-set([target])
+            nodelist=[self.root]+list(nodelist)+[target]
+        return nx.to_numpy_array(self,nodelist=nodelist,weight='weight')
 
     def step(self):
         """Retrieve transition probabilites at self.x to step to a neighbour.
