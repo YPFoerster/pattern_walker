@@ -463,8 +463,8 @@ def local_eq_probs(G,clusters):
     Calculate the local-equilibrium coarse-grained transition probabilites with
     marcostates given by the clusters.
     """
-    nodes=[node for cluster in clusters for node in cluster]
-    indices=np.array([[nodes.index(node) for node in cluster] for cluster in clusters])
+    nodes=[node for cluster in clusters.values() for node in cluster]
+    indices=np.array([[nodes.index(node) for node in cluster] for cluster in clusters.values()])
     q=nx.to_numpy_array(G,nodelist=nodes)
     q=np.diag(1/np.sum(q,axis=-1)).dot(q)
     # TODO: rewrite using function above
