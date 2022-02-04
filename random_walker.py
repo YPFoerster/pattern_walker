@@ -435,7 +435,6 @@ class fullProbPatternWalker(patternWalker):
             pattern=np.roll(self.nodes[self.root]['pattern'],-left_part_bound)
 
             #define index sets for specific and generic bits
-            print(self.part_size+2*self.overlap,self.pattern_len,left_part_bound)
             in_part = np.array(range(0,min(int(self.part_size+2*self.overlap),self.pattern_len)))
             out_part = np.array(range(len(in_part),self.pattern_len))
 
