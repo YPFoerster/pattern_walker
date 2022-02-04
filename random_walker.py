@@ -431,11 +431,12 @@ class fullProbPatternWalker(patternWalker):
 
             #firstly, take parent pattern and roll so that the leftmost specific
             #bit is at 0 index 0
-            left_part_bound=(part_ndx-1)*self.part_size-self.overlap
+            left_part_bound=int((part_ndx-1)*self.part_size-self.overlap)
             pattern=np.roll(self.nodes[self.root]['pattern'],-left_part_bound)
 
             #define index sets for specific and generic bits
-            in_part = np.array(range(0,min(self.part_size+2*self.overlap,self.pattern_len)))
+            print(self.part_size+2*self.overlap,self.pattern_len,left_part_bound)
+            in_part = np.array(range(0,min(int(self.part_size+2*self.overlap),self.pattern_len)))
             out_part = np.array(range(len(in_part),self.pattern_len))
 
             #mutate (1) specific and (2) generic bits separately
@@ -462,14 +463,14 @@ class fullProbPatternWalker(patternWalker):
 
                 #firstly, take parent pattern and roll so that the leftmost specific
                 #bit is at 0 index 0
-                left_part_bound=(part_ndx-1)*self.part_size-self.overlap
+                left_part_bound=int((part_ndx-1)*self.part_size-self.overlap)
                 pattern=np.roll(
                     self.nodes[list(self.hierarchy_backup.predecessors(node))[0]]['pattern'],\
                     -left_part_bound
                     )
 
                 #define index sets for specific and generic bits
-                in_part = np.array(range(0,min(self.part_size+2*self.overlap,self.pattern_len)))
+                in_part = np.array(range(0,min(int(self.part_size+2*self.overlap),self.pattern_len)))
                 out_part = np.array(range(len(in_part),self.pattern_len))
 
                 #mutate (1) specific and (2) generic bits separately
