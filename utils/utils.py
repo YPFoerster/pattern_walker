@@ -31,6 +31,7 @@ r-- h/w
 import networkx as nx
 
 import numpy as np
+from scipy.sparse import csr_matrix
 from copy import deepcopy
 import timeit
 from functools import wraps
@@ -521,7 +522,8 @@ def normalised_laplacian(G,weight='weight',stat_dist=None):
 
 def mfpt(
     G,node_pairs,weight_str='weight',stat_dist=None,norm_laplacian=None,
-    method='grounded_Laplacian'
+    method='grounded_Laplacian',
+    sparse=True
     ):
     """
     Return mean first passage times (MFPT) of a Markov chain on G
@@ -538,11 +540,14 @@ def mfpt(
     norm_laplacian-- Normalised Laplacian of the Markov chain. If None,
         calculate using norm_laplacian.
         (Only needed for method='fundamental_matrix')
-    method-- Either 'fundamental_matrix' (default) or 'eig'. The former uses
+    method-- Either 'fundamental_matrix', grounded_Laplacien (default),
+        'absorbing_target' or 'eig'. The first uses
         the (pseudo)inverse of the normalised Laplacian
         (see Yanhua & Zhang, 2010) the latter eigenvector decomposition of the
         transition matrix. Note that the letter requires DB to be correct, and
         NOTE THAT THE LATTER METHOD IS FAULTY AT THE MOMENT.
+        sparse-- Currently only relevant if method is 'absorbing_target'. Treats
+        transition matrix as sparse matrix when taking powers
 
     return-- If node_pairs contains only one tuple (start,target):
         MFPT between start and target.
@@ -654,6 +659,9 @@ def mfpt(
         #calculate cumulative distribution of FPT up to a cutoff
         cumulative=[0]
         W_power=np.eye(len(W))
+        if sparse:
+            W=csr_matrix(W)
+            W_power=csr_matrix(W_power)
         while cumulative[-1]<0.999:
             W_power=W.dot(W_power)
             cumulative.append(W_power[0,-1])
