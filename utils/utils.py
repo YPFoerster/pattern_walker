@@ -32,6 +32,7 @@ import networkx as nx
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import spsolve
 from copy import deepcopy
 import timeit
 from functools import wraps
@@ -546,8 +547,10 @@ def mfpt(
         (see Yanhua & Zhang, 2010) the latter eigenvector decomposition of the
         transition matrix. Note that the letter requires DB to be correct, and
         NOTE THAT THE LATTER METHOD IS FAULTY AT THE MOMENT.
-        sparse-- Currently only relevant if method is 'absorbing_target'. Treats
-        transition matrix as sparse matrix when taking powers
+    sparse-- Currently only relevant if method is 'absorbing_target' or
+        'grounded_Laplacian'. Treats transition matrix as sparse matrix when
+        taking powers (absorbing target), or solving linear system
+        (grounded Laplacian)
 
     return-- If node_pairs contains only one tuple (start,target):
         MFPT between start and target.
@@ -645,8 +648,14 @@ def mfpt(
                 W=nx.to_numpy_array(G, weight=weight_str,nodelist=node_order,dtype=np.float32)
             if (np.sum(W,axis=-1)!=1).any:
                 W=np.diag(1/np.sum(W,axis=-1)).dot(W)
+
+            A=np.eye(len(W)-1)-W[:-1,:-1]
+            if sparse:
+                A=csr_matrix(A)
+                out[pair]=spsolve( A,np.ones(len(W)-1))[0]
+            else:
                 try:
-                    out[pair]=np.sum( np.linalg.inv( np.eye(len(G)-1)-W[:-1,:-1] ),axis=-1 )[0]
+                    out[pair]=np.sum( np.linalg.inv( A ),axis=-1 )[0]
                 except np.linalg.LinAlgError:
                     out[pair]=np.nan
 
