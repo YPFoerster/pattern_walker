@@ -142,8 +142,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
         return out
 
-    def weight_bias(self,f2,fk,fk2):
-        #of E(w_l/w_r)=1+epsilon return epsilon
+    def epsilon(self,f2,fk,fk2):
+        # NOTE:  in the notation of the paper this is epsilon-1, to avoid
+        # too many distinct cases
         L=self.pattern_len
         out=0.
         if fk==0:
@@ -161,17 +162,17 @@ class MF_patternWalker(rw.fullProbPatternWalker):
     def root_cluster_eq_ratio(self):
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
         bias_list=[
-                1+self.weight_bias(
+                1+self.epsilon(
                     self.f(0,1,1,0),\
                     self.f(self.h-1,0,0,0),\
                     self.f(self.h-1,1,1,0)
                     ),\
-                1+self.weight_bias(
+                1+self.epsilon(
                     self.f(0,0,1,1),\
                     self.f(self.h-1,1,0,0),\
                     self.f(self.h-1,1,1,1))
             ]+[
-                1+self.weight_bias(
+                1+self.epsilon(
                     self.f(0,0,0,2),\
                     self.f(self.h-1,1,1,m),\
                     self.f(self.h-1,1,1,m+2) )
@@ -191,10 +192,10 @@ class MF_patternWalker(rw.fullProbPatternWalker):
     def sub_root_cluster_eq_ratio(self):
         #eq prob of cluster divided by eq prob of articulation pt, here the node under the root
         #just under the root things are a bit messy, hence the following epsilons
-        e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
-        e_u=1+self.weight_bias(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
+        e_r=1+self.epsilon(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
+        e_u=1+self.epsilon(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
 
-        bias_list=[ e_r,e_u ]+[ 1+self.weight_bias( self.f(2,0,0,0),self.f(self.h-1+l,0,0,0),self.f(self.h+1+l,0,0,0) )  for l in range(self.h-2) ]
+        bias_list=[ e_r,e_u ]+[ 1+self.epsilon( self.f(2,0,0,0),self.f(self.h-1+l,0,0,0),self.f(self.h+1+l,0,0,0) )  for l in range(self.h-2) ]
         out=1+(self.c-1)*e_u/( (self.c-1)*e_u+e_r+e_r*e_u )*\
             (
             np.sum([
@@ -211,7 +212,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         if k==0:
             return 1.
         else:
-            bias_list=[ 1+self.weight_bias( self.f(2,0,0,0),self.f(k-1+l,0,0,0),self.f(k+1+l,0,0,0) )  for l in range(k) ]
+            bias_list=[ 1+self.epsilon( self.f(2,0,0,0),self.f(k-1+l,0,0,0),self.f(k+1+l,0,0,0) )  for l in range(k) ]
             out=1+ (self.c-1)/(self.c+bias_list[0])*\
                 (
                 np.sum([
@@ -224,11 +225,11 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
         #just under the root things are a bit messy, hence the following epsilons
-        e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
-        e_u=1+self.weight_bias(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
+        e_r=1+self.epsilon(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
+        e_u=1+self.epsilon(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
         cord_weight_list =\
             [
-            1+self.weight_bias(
+            1+self.epsilon(
                     self.f(0,1,1,0),\
                     self.f(self.h-1,0,0,0),\
                     self.f(self.h-1,1,1,0)
@@ -236,7 +237,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             ]+\
             [ e_u ]+\
             [
-                 1+self.weight_bias(
+                 1+self.epsilon(
                     self.f(2,0,0,0),\
                     self.f(self.h-k-1,0,0,0),\
                     self.f(self.h-k+1,0,0,0)
@@ -305,7 +306,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             #the mu's aren't strictly required here, but we need them for
             #the overlap case
             weights=[(1+\
-                self.weight_bias(
+                self.epsilon(
                     self.f(0,1,1,0,mu),\
                     self.f(self.h-1,0,0,0,mu),\
                     self.f(self.h-1,1,1,0,mu))
@@ -324,8 +325,8 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
 
         elif self.root in neigh and self.nodes[node]['coordinates'][2]==0:
-            e_r=1+self.weight_bias(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
-            e_u=1+self.weight_bias(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
+            e_r=1+self.epsilon(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
+            e_u=1+self.epsilon(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
             normalisation=1/(e_u*(self.c-1)+e_r+e_r*e_u)
             for neighbor in neigh:
                 #counter-clockwise, starting from the target, then other children,
@@ -340,7 +341,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         elif self.root in neigh:
             coordinates=list(self.nodes[node]['coordinates'])
             coordinates[2]=0
-            e=1+self.weight_bias(self.f(0,0,1,1,coordinates[4]),self.f(self.h-1,1,0,0,coordinates[4]),self.f(self.h-1,1,1,1,coordinates[4]))
+            e=1+self.epsilon(self.f(0,0,1,1,coordinates[4]),self.f(self.h-1,1,0,0,coordinates[4]),self.f(self.h-1,1,1,1,coordinates[4]))
             for neighbor in neigh:
                 #counter-clockwise. first root (=targetwards), then children
                 if neighbor==self.root:
@@ -356,7 +357,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                 short_path=[0,0,0,2]
             else:
                 coordinates[0]-=1
-            e=1+self.weight_bias(self.f(*short_path,coordinates[-1]),self.f( *coordinates ),self.f( *[coordinates[i]+short_path[i] for i in range(4)] ))
+            e=1+self.epsilon(self.f(*short_path,coordinates[-1]),self.f( *coordinates ),self.f( *[coordinates[i]+short_path[i] for i in range(4)] ))
             # TODO: following line with tightness 0/1 suitable for unit test
             #print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
             for neighbor in neigh:
@@ -464,7 +465,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
         #but doing it this way, we see if the cancellations in our formula are right
 
         branch_weights=[(1+\
-            self.weight_bias(
+            self.epsilon(
                 self.f(0,1,1,0,mu),\
                 self.f(self.h-1,0,0,0,mu),\
                 self.f(self.h-1,1,1,0,mu))
@@ -476,10 +477,10 @@ class overlap_MF_patternWalker(MF_patternWalker):
         e_r_list=[e_0/weight for weight in branch_weights]
         branch_normalisation=1/(e_0+np.sum(e_r_list))
         bias_dict={
-            mu: [e_0,e_r_list[mu-2], 1+self.weight_bias(self.f(0,0,1,1,mu),\
+            mu: [e_0,e_r_list[mu-2], 1+self.epsilon(self.f(0,0,1,1,mu),\
                 self.f(self.h-1,1,0,0,mu),self.f(self.h-1,1,1,1,mu))]\
                 +[
-                    1+self.weight_bias(
+                    1+self.epsilon(
                         self.f(0,0,0,2,mu),\
                         self.f(self.h-1,1,1,l,mu),\
                         self.f(self.h-1,1,1,l+2,mu)
@@ -508,7 +509,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
         #just under the root things are a bit messy, hence the following epsilons
 
         branch_weights=[(1+\
-            self.weight_bias(
+            self.epsilon(
                 self.f(0,1,1,0,mu),\
                 self.f(self.h-1,0,0,0,mu),\
                 self.f(self.h-1,1,1,0,mu))
@@ -520,12 +521,12 @@ class overlap_MF_patternWalker(MF_patternWalker):
         e_root_norm=e_root+np.sum([
                 e_root/weight for weight in branch_weights])
 
-        e_r=1+self.weight_bias(
+        e_r=1+self.epsilon(
             self.f(2,0,0,0),\
             self.f(self.h-2,0,0,0),\
             self.f(self.h,0,0,0)
             )
-        e_u=1+self.weight_bias(
+        e_u=1+self.epsilon(
             self.f(1,1,0,0),\
             self.f(self.h-2,0,0,0),\
             self.f(self.h-1,1,0,0)
@@ -535,7 +536,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
                 [ e_root ]+\
                 [ e_u ]+\
                 [
-                (1+self.weight_bias(
+                (1+self.epsilon(
                     self.f(2,0,0,0),\
                     self.f(self.h-k-1,0,0,0),\
                     self.f(self.h-k+1,0,0,0))
