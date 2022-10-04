@@ -12,7 +12,7 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'fullProbPatternWalker', 'patternStats'
+    'walker', 'patternWalker', 'empiricalPatternWalker', 'fullProbPatternWalker', 'patternStats'
     ]
 
 class walker(nx.DiGraph):
@@ -303,6 +303,36 @@ class patternWalker(walker):
         pattern=list(pattern)
         return np.array([ 1-x if np.random.random()<mutation_probs[x] else x for x in pattern ])
 
+
+class empiricalPatternWalker(patternWalker):
+    def __init__(self,G,root,metric=None,target=None):
+        """
+        Initialise variables as described, passing G and it's root to the
+        the superclass. Assumes that patterns are attributed of nodes in G
+        under the key 'pattern'
+
+        G-- Graph data, must be compatible with class walker. Nodes must have
+        attibute 'pattern'
+        root-- inital postion of the walker. Will be handled as root of G
+        metric-- Metric for binary strings. (if None: Hamming distance)
+        target-- The target node of the walker. If None, one is chosen
+            randonly from the leaf nodes.
+        """
+        #Remember to pass walker.bias=1 in super
+        self.hierarchy_backup=G.copy()
+
+        super(patternWalker,self).__init__(G,root,1.)
+        self.root=root
+        if metric is None:
+            self.metric=utils.hamming_dist
+        else:
+            self.metric=metric
+        if target is None:
+            self.target_node=np.random.choice(utils.leaves(self.hierarchy_backup))
+            self.target_pattern=self.nodes[self.target_node]['pattern']
+        else:
+            self.target_node=target
+            self.target_pattern=self.nodes[self.target_node]['pattern']
 
 class fullProbPatternWalker(patternWalker):
     """
