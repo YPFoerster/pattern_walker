@@ -8,7 +8,7 @@ import numpy as np
 import networkx as nx
 
 __all__ = [
-    'MF_patternWalker', 'overlap_MF_patternWalker'
+    'MF_patternWalker', 'overlap_MF_patternWalker','MFPropertiesCAryTrees','MF_mfpt_cary_tree'
     ]
 
 
@@ -550,3 +550,205 @@ class overlap_MF_patternWalker(MF_patternWalker):
 
         out = np.sum(np.sum( [[eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)] for i in range(1,self.h+1)] ))
         return out
+
+class MFPropertiesCAryTrees(overlap_MF_patternWalker):
+    """
+    Hosts some of the methods from the overlap_MF_patternwalker class that
+    function without a graph. Results are for c-ary trees of height h and
+    offspring number c.
+    """
+    def __init__(self,c,h,pattern_len,a_root,a_low,\
+        a_high,overlap,Gamma,Gamma_root):
+        self.c=c
+        self.h=h
+        self.a_root=a_root
+        if a_high<=(1-a_root)*Gamma_root+a_root and a_high>=(1-a_root)*Gamma_root:
+            self.a_high=a_high
+        else:
+            self.a_high=(1-a_root)*Gamma_root+a_root
+        if a_low>=(1-a_root)*Gamma_root and a_low<=(1-a_root)*Gamma_root+a_root:
+            self.a_low=a_low
+        else:
+            self.a_low=(1-a_root)*Gamma_root+a_root/10
+        self.overlap=overlap
+        self.Gamma_root=Gamma_root
+        self.num_parts=c
+        self.part_size=int(pattern_len/self.num_parts)
+        self.pattern_len=pattern_len
+        self.Gamma=Gamma
+
+        if self.overlap>self.pattern_len*(self.c-1)/(2*self.c):
+            self.overlap=(self.pattern_len-int(self.pattern_len/self.c))/2
+        self.O_list=np.array([
+            max(0,int(self.pattern_len/self.c)*(2-i)+2*self.overlap)+\
+            max(0,i*int(self.pattern_len/self.c)-self.pattern_len+2*self.overlap)
+            for i in range(2,c+1)])
+        self.U_list=np.array([
+            max(0,-int(self.pattern_len/self.c)*(2-i)-2*self.overlap)+\
+            max(0,-i*int(self.pattern_len/self.c)+self.pattern_len-2*self.overlap)
+            for i in range(2,c+1)])
+        self.O_hh=np.sum(self.O_list)/(self.pattern_len*(self.c-1))
+        self.O_ll=np.sum(self.U_list)/(self.pattern_len*(self.c-1))
+        self.O_hl=(1-self.O_hh-self.O_ll)/2
+        self.O_lh=self.O_hl
+
+
+    def f(self,k,up,down,m,mu=2,**kwargs):
+        a_h=self.a_high
+        a_l=self.a_low
+        a=self.a_root
+        Gamma=self.Gamma
+        Gammap=self.Gamma_root
+
+        out=0.
+        coordinates=(k,up,down,m)
+
+        if up==0 and down+m==0:
+            #target branch
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+            f_l*(
+                self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                )/self.pattern_len
+
+        elif up==1 and down==0:
+            #target branch up to root
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
+
+        elif up==0 and down==1:
+            #root down to non-target branch
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a,ajr=a_h)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a,ajr=a_l)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
+
+        elif up+k==0 and down==0:
+            #non-targget branch
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
+
+        else:
+            #from target branch over root to non-target branch
+            f_hh=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
+            f_hl=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_l)
+            f_lh=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_h)
+            f_ll=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
+            if mu==0:
+                #is this the case where we don't care?
+                out=self.O_hh*f_hh+self.O_lh*f_lh+self.O_hl*f_hl+self.O_ll*f_ll
+            else:
+                out=self.O_list[mu-2]/self.pattern_len*f_hh+\
+                    (self.pattern_len-self.U_list[mu-2]-self.O_list[mu-2])/self.pattern_len*\
+                    (f_hl+f_lh)/2+self.U_list[mu-2]/self.pattern_len*f_ll
+
+        return out
+
+    def root_cluster_eq_ratio(self):
+        #eq prob of cluster divided by eq prob of articulation pt, here the root itself
+        # NOTE: This could be done using the mean weight function directly,
+        #but doing it this way, we see if the cancellations in our formula are right
+
+        branch_weights=[(1+\
+            self.epsilon(
+                self.f(0,1,1,0,mu),\
+                self.f(self.h-1,0,0,0,mu),\
+                self.f(self.h-1,1,1,0,mu))
+            )
+            for mu in range(2,self.c+1)
+            ]
+
+        e_0=np.prod(branch_weights)
+        e_r_list=[e_0/weight for weight in branch_weights]
+        branch_normalisation=1/(e_0+np.sum(e_r_list))
+        bias_dict={
+            mu: [e_0,e_r_list[mu-2], 1+self.epsilon(self.f(0,0,1,1,mu),\
+                self.f(self.h-1,1,0,0,mu),self.f(self.h-1,1,1,1,mu))]\
+                +[
+                    1+self.epsilon(
+                        self.f(0,0,0,2,mu),\
+                        self.f(self.h-1,1,1,l,mu),\
+                        self.f(self.h-1,1,1,l+2,mu)
+                    )
+                for l in range(self.h-2)
+                ]
+            for mu in range(2,self.c+1)
+            }
+
+        out=1+np.sum([branch_normalisation*bias_dict[mu][1]*\
+                (
+                np.sum([
+                    self.c**l*(self.c+bias_dict[mu][l+2])/\
+                    np.prod([bias_dict[mu][k+2] for k in range(l+1)])
+                for l in range(self.h-1)
+                ])+\
+                self.c**(self.h-1)/\
+                    np.prod([bias_dict[mu][l+2] for l in range(self.h-1)])
+                )
+            for mu in range(2,self.c+1)
+            ])
+
+        return out
+
+    def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
+        #just under the root things are a bit messy, hence the following epsilons
+
+        branch_weights=[(1+\
+            self.epsilon(
+                self.f(0,1,1,0,mu),\
+                self.f(self.h-1,0,0,0,mu),\
+                self.f(self.h-1,1,1,0,mu))
+            )
+            for mu in range(2,self.c+1)
+            ]
+        e_root=np.prod(branch_weights)
+
+        e_root_norm=e_root+np.sum([
+                e_root/weight for weight in branch_weights])
+
+        e_r=1+self.epsilon(
+            self.f(2,0,0,0),\
+            self.f(self.h-2,0,0,0),\
+            self.f(self.h,0,0,0)
+            )
+        e_u=1+self.epsilon(
+            self.f(1,1,0,0),\
+            self.f(self.h-2,0,0,0),\
+            self.f(self.h-1,1,0,0)
+            )
+
+        cord_weight_list = \
+                [ e_root ]+\
+                [ e_u ]+\
+                [
+                (1+self.epsilon(
+                    self.f(2,0,0,0),\
+                    self.f(self.h-k-1,0,0,0),\
+                    self.f(self.h-k+1,0,0,0))
+                    )
+            for k in range(2,self.h)
+            ]
+
+        numerators=[e_root_norm]+[((self.c-1)*e_u+e_r*e_u+e_r)/e_r]+[self.c+cord_weight_list[k] for k in range(2,self.h)]
+
+        eq_ratio_list = [ self.root_cluster_eq_ratio() ] + [self.sub_root_cluster_eq_ratio()] +[ self.eq_ratio(self.h-k) for k in range(2,self.h) ]
+
+        out = np.sum(np.sum( [[eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)] for i in range(1,self.h+1)] ))
+        return out        
+
+def MF_mfpt_cary_tree(*args):
+    #c,h,pattern_len,a_root,a_low,\
+    # a_high,overlap,Gamma,Gamma_root
+    G = MFPropertiesCAryTrees(*args)
+    return G.MF_mfpt()
