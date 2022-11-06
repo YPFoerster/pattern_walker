@@ -8,7 +8,8 @@ import numpy as np
 import networkx as nx
 
 __all__ = [
-    'MF_patternWalker', 'overlap_MF_patternWalker','MFPropertiesCAryTrees','MF_mfpt_cary_tree'
+    'MF_patternWalker', 'overlap_MF_patternWalker','MFPropertiesCAryTrees',\
+    'MF_mfpt_cary_tree','MF_patternWalker_general'
     ]
 
 
@@ -550,6 +551,206 @@ class overlap_MF_patternWalker(MF_patternWalker):
 
         out = np.sum(np.sum( [[eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)] for i in range(1,self.h+1)] ))
         return out
+
+class MF_patternWalker_general(rw.fullProbPatternWalker):
+
+    def __init__(self,*args,**params):
+        super(MF_patternWalker_general,self).__init__(*args,**params)
+        self.set_weights()
+        self.set_coordinates()
+        self.c = self.degree(self.root)
+        if self.overlap>self.pattern_len*(self.c-1)/(2*self.c):
+            self.overlap=(self.pattern_len-int(self.pattern_len/self.c))/2
+        self.O_list=np.array([
+            max(0,int(self.pattern_len/self.c)*(2-i)+2*self.overlap)+\
+            max(0,i*int(self.pattern_len/self.c)-self.pattern_len+2*self.overlap)
+            for i in range(2,self.c+1)])
+        self.U_list=np.array([
+            max(0,-int(self.pattern_len/self.c)*(2-i)-2*self.overlap)+\
+            max(0,-i*int(self.pattern_len/self.c)+self.pattern_len-2*self.overlap)
+            for i in range(2,self.c+1)])
+        self.O_hh=np.sum(self.O_list)/(self.pattern_len*(self.c-1))
+        self.O_ll=np.sum(self.U_list)/(self.pattern_len*(self.c-1))
+        self.O_hl=(1-self.O_hh-self.O_ll)/2
+        self.O_lh=self.O_hl
+
+        for node in self.nodes:
+            self.set_mean_weights(node)
+
+    def f(self,k,up,down,m,mu=2,**kwargs):
+        a_h=self.a_high
+        a_l=self.a_low
+        a=self.a_root
+        Gamma=self.Gamma
+        Gammap=self.Gamma_root
+
+        out=0.
+        coordinates=(k,up,down,m)
+
+        if up==0 and down+m==0:
+            #target branch
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+            f_l*(
+                self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                )/self.pattern_len
+
+        elif up==1 and down==0:
+            #target branch up to root
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
+
+        elif up==0 and down==1:
+            #root down to non-target branch
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a,ajr=a_h)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a,ajr=a_l)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
+
+        elif up+k==0 and down==0:
+            #non-targget branch
+            f_h=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
+            f_l=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
+            out=f_h*(self.pattern_len/self.c+2*self.overlap)/self.pattern_len+\
+                f_l*(
+                    self.pattern_len-self.pattern_len/self.c-2*self.overlap
+                    )/self.pattern_len
+
+        else:
+            #from target branch over root to non-target branch
+            f_hh=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_h)
+            f_hl=MF_patternWalker.f(self,*coordinates,ajl=a_h,ajr=a_l)
+            f_lh=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_h)
+            f_ll=MF_patternWalker.f(self,*coordinates,ajl=a_l,ajr=a_l)
+            if mu==0:
+                #is this the case where we don't care?
+                out=self.O_hh*f_hh+self.O_lh*f_lh+self.O_hl*f_hl+self.O_ll*f_ll
+            else:
+                out=self.O_list[mu-2]/self.pattern_len*f_hh+\
+                    (self.pattern_len-self.U_list[mu-2]-self.O_list[mu-2])/self.pattern_len*\
+                    (f_hl+f_lh)/2+self.U_list[mu-2]/self.pattern_len*f_ll
+
+        return out
+
+    def epsilon(self,f2,fk,fk2):
+        # NOTE:  in the notation of the paper this is epsilon-1, to avoid
+        # too many distinct cases
+        L=self.pattern_len
+        out=0.
+        if fk==0:
+            if f2==0:
+                out=0.
+            else:
+                out=f2*self.pattern_len
+        else:
+            # f2=f2/fk2
+            dk1_inv_exp=(1-(1-fk)**(self.pattern_len+1))/((self.pattern_len+1)*fk)
+            out=-1+(1+L*f2*fk2/(1-fk)-fk2*(1-fk-f2)/(fk*(1-fk)))*dk1_inv_exp+fk2*(1-fk-f2)/(fk*(1-fk))
+
+        return out
+
+    def set_mean_weights(self,node):
+
+        neigh=list(self.neighbors(node))
+        out={}
+        node_coordinates = list(self.nodes[node]['coordinates'])
+        try:
+            toward_target = nx.shortest_path(self,node,self.target_node)[1] # path to target
+        except IndexError:
+            pass
+
+        if len(neigh) == 1:
+            out={ (node,*neigh):1. }
+
+        elif node==self.root:
+            c = len(neigh)
+            h = node_coordinates[0]+1
+            #the mu's aren't strictly required here, but we need them for
+            #the overlap case
+            weights=[(1+\
+                self.epsilon(
+                    self.f(0,1,1,0,mu),\
+                    self.f(h-1,0,0,0,mu),\
+                    self.f(h-1,1,1,0,mu))
+                )
+                for mu in range(2,c+1)
+                ]
+            e_0=np.prod(weights)
+            normalisation=1/(e_0+\
+                np.sum([ e_0/weight for weight in weights ])
+                )
+            #counter-clockwise. First towards target, then the other parts in order
+            out[(node,toward_target)]=e_0*normalisation
+            for neighbor in set(neigh)-set([toward_target]):
+                part=self.nodes[neighbor]['coordinates'][4]
+                out[(node,neighbor)]=e_0*normalisation/weights[part-2]
+
+
+        elif self.root in neigh and node_coordinates[2]==0:
+            c=len(neigh)-1
+            h=node_coordinates[0]+1
+            e_r=1+self.epsilon(self.f(2,0,0,0),self.f(h-2,0,0,0),self.f(h,0,0,0))
+            e_u=1+self.epsilon(self.f(1,1,0,0),self.f(h-2,0,0,0),self.f(h-1,1,0,0))
+            normalisation=1/(e_u*(c-1)+e_r+e_r*e_u)
+            for neighbor in neigh:
+                #counter-clockwise, starting from the target, then other children,
+                #finally root
+                if neighbor ==toward_target:
+                    out[(node,neighbor)]=e_u*e_r*normalisation
+                elif not neighbor==self.root:
+                    out[(node,neighbor)]=e_u*normalisation
+                else:
+                    out[(node,neighbor)]=e_r*normalisation
+
+        elif self.root in neigh:
+            # coordinates=list(self.nodes[node]['coordinates'])
+            ## TODO: check back if this is important
+            node_coordinates[2]=0 # easier access to targetwards and opposite neighbour
+            c = len(neigh)-1
+            h = node_coordinates[0]+1
+            connector = [0,0,1,1] # connection between targetwards and "opposite" neighbour
+            e=1+self.epsilon(self.f(*connector,node_coordinates[-1]),\
+            self.f(h-1,1,0,0,node_coordinates[4]),\
+            self.f(h-1,1,1,1,node_coordinates[-1]
+            ))
+            for neighbor in neigh:
+                #counter-clockwise. first root (=targetwards), then children
+                if neighbor==self.root:
+                        out[(node,neighbor)]=e/(c+e)
+                else:
+                    out[ (node,neighbor)]=1/(c+e)
+
+        else:
+            c=len(neigh)-1
+            # coordinates=list(self.nodes[node]['coordinates'])
+            connector=[2,0,0,0] # connection between targetwards and "opposite" neighbour
+            if node_coordinates[3]>0:
+                ## TODO: check back to see if this is important
+                node_coordinates[3]-=1 # easier access to targetwards and opposite neighbour
+                connector=[0,0,0,2]
+            else:
+                node_coordinates[0]-=1 # easier access to targetwards and opposite neighbour
+            e=1+self.epsilon(self.f(*connector,node_coordinates[-1]),\
+                self.f( *node_coordinates ),
+                self.f( *[node_coordinates[i]+connector[i] for i in range(4)]
+                ))
+            # TODO: following line with tightness 0/1 suitable for unit test
+            #print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
+            for neighbor in neigh:
+                #counter-clockwise. first targetwards, then children
+                if neighbor==toward_target:
+                    out[( node,neighbor)] = e/(c+e)
+                else:
+                    out[( node,neighbor )] = 1/(c+e)
+        nx.set_edge_attributes(self,out,'mean_weight')
+
 
 class MFPropertiesCAryTrees(overlap_MF_patternWalker):
     """
