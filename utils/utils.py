@@ -234,11 +234,14 @@ def spanning_tree_with_root(G,root,edge_direction='up'):
         return out[0]
     else:
         return None
-def tree_weight(G,root,edge_direction='up'):
+def tree_weight(G,root,edge_direction='up',weight_string='weight'):
+    # can be made faster for vectorisation, as the difference between the
+    # spanning tree weights of two nodes on a tree lies only in the edges of
+    # the shortest path conencting the two.
     tree=spanning_tree_with_root(G,root,edge_direction)
     temp=1
     for (u,v) in tree.edges:
-        temp*=G.get_edge_data(u,v)['weight']
+        temp*=G.get_edge_data(u,v)[weight_string]
     return temp
 
 
@@ -707,9 +710,9 @@ def mfpt(
     else:
         return out
 
-def tree_mfpts(tree,start,target):
+def tree_mfpts(tree,start,target,weight_string='weight'):
     #Find MFPT based on tree weights. Tree has to be an arborescence.
-    sigma_target=tree_weight(tree,target)
+    sigma_target=tree_weight(tree,target,weight_string=weight_string)
     shortest_path = nx.shortest_path(tree,start,target)
     sigma_start_target=0
 
@@ -726,8 +729,8 @@ def tree_mfpts(tree,start,target):
                 start_comp.remove_nodes_from(comp)
             elif not (target in comp):
                 target_comp.remove_nodes_from(comp)
-        temp_sigma*=tree_weight(target_comp,target)
-        temp_sigma*=np.sum([tree_weight(start_comp,node) for node in start_comp])
+        temp_sigma*=tree_weight(target_comp,target,weight_string=weight_string)
+        temp_sigma*=np.sum([tree_weight(start_comp,node,weight_string=weight_string) for node in start_comp])
         sigma_start_target+=temp_sigma
     return sigma_start_target/sigma_target
 
