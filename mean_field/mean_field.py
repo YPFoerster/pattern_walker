@@ -247,7 +247,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             ]
         numerators=[ self.c-1+cord_weight_list[0] ]+[(e_u*(self.c-1)+e_r+e_r*e_u)/e_r]+[self.c+cord_weight_list[k] for k in range(2,self.h+1)]
         eq_ratio_list = [self.root_cluster_eq_ratio(), self.sub_root_cluster_eq_ratio()]+[ self.eq_ratio(self.h-k) for k in range(2,self.h+1) ]
-        out = np.sum(np.sum( [[eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)] for i in range(self.h+1)] ))
+        out = np.sum( [np.sum([eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)]) for i in range(self.h+1)] )
         return out
 
 
@@ -549,7 +549,7 @@ class overlap_MF_patternWalker(MF_patternWalker):
 
         eq_ratio_list = [ self.root_cluster_eq_ratio() ] + [self.sub_root_cluster_eq_ratio()] +[ self.eq_ratio(self.h-k) for k in range(2,self.h) ]
 
-        out = np.sum(np.sum( [[eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)] for i in range(1,self.h+1)] ))
+        out = np.sum( [np.sum([eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)]) for i in range(1,self.h+1)] )
         return out
 
 class MF_patternWalker_general(rw.fullProbPatternWalker):

@@ -487,7 +487,7 @@ def eq_prob_cluster_ratios(G,clusters,articulations):
     # nodes=[node for cluster in clusters for node in cluster]
     # TODO: clean up
     nodes=list(G.nodes)
-    clustered_indices=np.array([[nodes.index(node) for node in cluster] for cluster in clusters.values()])
+    clustered_indices=[np.array([nodes.index(node) for node in cluster]) for cluster in clusters.values()]
     articulation_indeces=[ nodes.index(node) for node in articulations ]
     q=nx.to_numpy_array(G,nodelist=nodes)
     q=np.diag(1/np.sum(q,axis=-1)).dot(q)
