@@ -430,7 +430,7 @@ def path_direction_profile(G,reference,path):
             for i in range(len(path[:-1]))
             ]
 
-def stationary_distribution(G,weight='weight'):
+def stationary_distribution(G,weight='weight',nodelist=None):
     """
     Return the maximum eigenvector of a Markov chain with state space G.
 
@@ -453,49 +453,66 @@ def stationary_distribution(G,weight='weight'):
     """
     #trans_{i,j}=Prob(j|i)= Prob(i->j)
     # TODO: replace by to_numpy_array, which should render the squeeze unnecessary
-    trans = nx.to_numpy_matrix(G,weight=weight)
-    evls, evcs = np.linalg.eig(trans.T)
-    max_evl_ndx=np.argmax(np.real(evls))
-    #normalise entries to sum up to 1
-    evcs[:,max_evl_ndx]/=np.sum(evcs[:,max_evl_ndx])
-    #If looking for stationary distribution, entries must be non-negative
-    if any( [x<0 for x in evcs[:,max_evl_ndx]] ):
-        evcs[:,max_evl_ndx]*=-1
-    return np.squeeze(np.array(evcs[:,max_evl_ndx]))
-
-def local_eq_probs(G,clusters):
-    """
-    Calculate the local-equilibrium coarse-grained transition probabilites with
-    marcostates given by the clusters.
-    """
-    nodes=[node for cluster in clusters.values() for node in cluster]
-    indices=np.array([[nodes.index(node) for node in cluster] for cluster in clusters.values()])
-    q=nx.to_numpy_array(G,nodelist=nodes)
+    q=nx.to_numpy_array(G,nodelist=nodelist)
     q=np.diag(1/np.sum(q,axis=-1)).dot(q)
-    # TODO: rewrite using function above
     evals,evecs=np.linalg.eig(q.T)
     pi=evecs[:,list(evals).index(np.max(evals))].real
     pi/=np.sum(pi)
-    PI=np.array([ np.sum(pi[indices[cluster_ndx]]) for cluster_ndx in range(len(clusters)) ])
-    Q=[[ 1/PI[cluster_I]*np.sum( pi[indices[cluster_I]].T.dot(q[indices[cluster_I]][:,indices[cluster_J]]) )  for cluster_J in range(len(clusters)) ] for cluster_I in range(len(clusters))]
-    return np.array(Q)
+
+    return pi
+
+def local_eq_probs(G,clusters,clustered_indices=None,return_PI=False):
+    """
+    Calculate the local-equilibrium coarse-grained transition probabilites with
+    marcostates given by the clusters. Return the steady-state distributions
+    (coarse-grained and microscopic), too, if return_PI is set to True.
+    """
+
+    if clustered_indices is None:
+        nodes=list(G.nodes())
+        # incidence list of nodes (by their index in the list) for each cluster
+        clustered_indices=[np.array([nodes.index(node) for node in cluster])
+                            for cluster in clusters.values()]
+
+    q=nx.to_numpy_array(G) #microscopic transition matrix
+    q=np.diag(1/np.sum(q,axis=-1)).dot(q)
+
+    pi=stationary_distribution(G) #get microscopic steady state
+    PI=np.array([ np.sum(pi[clustered_indices[cluster_ndx]]) #coarse-grain
+                for cluster_ndx in range(len(clusters)) ])
+
+    #calculate coarse-grained transition matrix using local equilibrium
+    Q=[[ 1/PI[cluster_I]*\
+                np.sum(
+                    pi[clustered_indices[cluster_I]].T.dot(
+                            q[clustered_indices[cluster_I]][:,clustered_indices[cluster_J]]
+                            )
+                    )
+                for cluster_J in range(len(clusters)) ]
+                    for cluster_I in range(len(clusters))]
+
+    if return_PI:
+        out= (np.array(Q),PI,pi)
+    else:
+        out = np.array(Q)
+    return out
 
 def eq_prob_cluster_ratios(G,clusters,articulations):
     """
     Calculate the ratios pi_articulation/PI_cluster_of_that_articulation.
+    clusters must be a dict of lists indicating cluster membership.
     """
-    # nodes=[node for cluster in clusters for node in cluster]
-    # TODO: clean up
-    nodes=list(G.nodes)
+    nodes = list(G.nodes())
+    # incidence list of nodes (by their index in the list) for each cluster
     clustered_indices=[np.array([nodes.index(node) for node in cluster]) for cluster in clusters.values()]
+    #indices in nodes (above) of outward-connecting nodes for each cluster
     articulation_indeces=[ nodes.index(node) for node in articulations ]
-    q=nx.to_numpy_array(G,nodelist=nodes)
-    q=np.diag(1/np.sum(q,axis=-1)).dot(q)
-    # TODO: rewrite using function above
-    evals,evecs=np.linalg.eig(q.T)
-    pi=evecs[:,list(evals).index(np.max(evals))].real
-    pi/=np.sum(pi)
-    PI=np.array([ np.sum(pi[clustered_indices[cluster_ndx]]) for cluster_ndx in range(len(clusters)) ])
+
+    # convenient vway to get both pi and PI
+    _,PI,pi = local_eq_probs(G,clusters,clustered_indices=clustered_indices\
+                                                                ,return_PI=True)
+
+    #calculate ratios
     R=[ PI[cluster_I]/pi[articulation_indeces[cluster_I]] for cluster_I in range(len(clusters)) ]
     return np.array(R)
 
