@@ -12,7 +12,7 @@ import networkx as nx
 import pattern_walker.utils as utils
 
 __all__ = [
-    'walker', 'patternWalker', 'fullProbPatternWalker', 'patternStats'
+    'walker', 'patternWalker', 'empiricalPatternWalker', 'fullProbPatternWalker', 'patternStats'
     ]
 
 class walker(nx.DiGraph):
@@ -303,6 +303,74 @@ class patternWalker(walker):
         pattern=list(pattern)
         return np.array([ 1-x if np.random.random()<mutation_probs[x] else x for x in pattern ])
 
+    def set_position_numbers(self,G,root,target):
+        """
+        Assign to each node its Part and depth for convenient access.
+        """
+        G.nodes[root]['Part']=0 #root has its own "zeroth" Part
+        G.nodes[root]['depth']=0 #distance from root
+
+        #we prefer to have the target in part numero 1
+        target_part= nx.shortest_path(G,root,target)[1]
+
+        G.nodes[target_part]['Part']=1
+        G.nodes[target_part]['depth']=1
+        #the Part level node defines the Part of all its descendants
+        for descendant in nx.descendants(G,target_part):
+            G.nodes[descendant]['Part']=1
+            G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
+        #remaining Parts in any order enumerated from 2
+        other_parts=set(G.successors(root))-set([target_part])
+
+        for ndx,part in enumerate(other_parts,start=2):
+            G.nodes[part]['Part']=ndx
+            G.nodes[part]['depth']=1
+            for descendant in nx.descendants(G,part):
+                G.nodes[descendant]['Part']=ndx
+                G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
+        #return number of parts to check all went well
+        return len(other_parts)+1
+
+
+
+class empiricalPatternWalker(patternWalker):
+    def __init__(self,G,root,metric=None,target=None):
+        """
+        Initialise variables as described, passing G and its root to the
+        the superclass. Assumes that patterns are attributed of nodes in G
+        under the key 'pattern'. Contains a convenience method wrapping
+        utils.tree_mfpts to calculate the MFPT for this instance. 
+
+        G-- Graph data, must be compatible with class walker. Nodes must have
+        attibute 'pattern'
+        root-- inital postion of the walker. Will be handled as root of G
+        metric-- Metric for binary strings. (if None: Hamming distance)
+        target-- The target node of the walker. If None, one is chosen
+            randomly from the leaf nodes.
+        """
+        #Remember to pass walker.bias=1 in super
+        self.hierarchy_backup=G.copy()
+
+        super(patternWalker,self).__init__(G,root,1.)
+        self.root=root
+        if metric is None:
+            self.metric=utils.hamming_dist
+        else:
+            self.metric=metric
+        if target is None:
+            self.target_node=np.random.choice(utils.leaves(self.hierarchy_backup))
+            self.target_pattern=self.nodes[self.target_node]['pattern']
+        else:
+            self.target_node=target
+            self.target_pattern=self.nodes[self.target_node]['pattern']
+
+        self.set_weights()
+
+    def mfpt(self):
+        """
+        A wrapper for utils.tree_mfpts
+        """
+        return utils.tree_mfpts(self,self.root,self.target_node)
 
 class fullProbPatternWalker(patternWalker):
     """
@@ -363,33 +431,6 @@ class fullProbPatternWalker(patternWalker):
         self.coordinates_set=False
         super(fullProbPatternWalker,self).__init__(G,root,pattern_len,Gamma,metric,target)
 
-    def set_position_numbers(self,G,root,target):
-        """
-        Assign to each node its Part and depth for convenient access.
-        """
-        G.nodes[root]['Part']=0 #root has its own "zeroth" Part
-        G.nodes[root]['depth']=0 #distance from root
-
-        #we prefer to have the target in part numero 1
-        target_part= nx.shortest_path(G,root,target)[1]
-
-        G.nodes[target_part]['Part']=1
-        G.nodes[target_part]['depth']=1
-        #the Part level node defines the Part of all its descendants
-        for descendant in nx.descendants(G,target_part):
-            G.nodes[descendant]['Part']=1
-            G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
-        #remaining Parts in any order enumerated from 2
-        other_parts=set(G.successors(root))-set([target_part])
-
-        for ndx,part in enumerate(other_parts,start=2):
-            G.nodes[part]['Part']=ndx
-            G.nodes[part]['depth']=1
-            for descendant in nx.descendants(G,part):
-                G.nodes[descendant]['Part']=ndx
-                G.nodes[descendant]['depth']=nx.shortest_path_length(G,root,descendant)
-        #return number of parts to check all went well
-        return len(other_parts)+1
 
     def set_coordinates(self):
         """
