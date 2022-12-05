@@ -26,6 +26,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         self.set_coordinates()
 
     def Q_power(self,k,aj=None):
+        """
+         in-part transitition matrix for pattern bits, over edge-distance k
+        """
         if aj is None:
             aj=self.a_high
         Gamma=self.Gamma
@@ -40,6 +43,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def R_up(self,aj=None,a=None,Gammap=None):
+        """
+        part-to-root transition matrix for pattern bit
+        """
         if aj is None:
             ajl=self.a_high
         if a is None:
@@ -65,6 +71,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def R_down(self,aj=None,a=None,Gammap=None):
+        """
+        root-to-part transition matrix for pattern bit
+        """
         if aj is None:
             aj=self.a_high
         if a is None:
@@ -84,12 +93,14 @@ class MF_patternWalker(rw.fullProbPatternWalker):
                     )
         return out
 
-    #for full overlap, the pattern distance rates at graph distance k from the target. Cases separated depending
-    #whether the root needs to be involved
-    #k includes the upward root link if applicable, m includes the downwards root link, if applicable
-    #so the sum of k and m has to be the graph distance
 
     def f(self,k,up=0,down=0,m=0,mu=0,ajl=None,ajr=None):
+        """
+        for full overlap, the pattern distance rates at graph distance k from the target. Cases separated depending
+        whether the root needs to be involved
+        k includes the upward root link if applicable, m includes the downwards root link, if applicable
+        so the sum of k and m has to be the graph distance
+        """
         if ajl is None:
             ajl=self.a_high
         if ajr is None:
@@ -100,52 +111,34 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         out=0.
 
         if k>0 and up+down+m==0:
-            # NOTE: seems correct
             out=2*ajl*(1-ajl)*(1-(1-Gamma)**k)
-            #out=self.Q_power(k,aj=ajl)
-            #out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==1 and down+m==0:
-            # NOTE: seems okay
             if a:
                 out=a+ajl-2*a*ajl+2*(1-a)*(1-Gamma)**k*(Gammap-ajl)
             else:
                 out=Gammap
-            # out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl))
-            # out = ajl*out[1,0]+(1-ajl)*out[0,1]
 
         elif up==down==1:
-            # NOTE: seems correct
-            #out=2/a*(1-Gamma)**(k+m)*((1-a)*(Gammap*(ajl+ajr)-Gammap**2)-ajl*ajr)+ajl+ajr+2*ajl*ajr*(1-(1-Gamma)**(k+m))
             if a:
                 out=2/a*(1-Gamma)**(k+m)*((1-a)*Gammap*(ajl+ajr-Gammap)-ajl*ajr)+ajl+ajr-2*ajl*ajr*(1-(1-Gamma)**(k+m))
             else:
-                # out=(1-Gammap)*(2*Gammap+a*(1-Gamma)**m*(1-2*Gammap))
                 out=2*(1-Gammap)*(Gammap-a*(1-Gamma)**m)+a*(1-Gammap)*(1-Gamma)**m
-            # out=self.Q_power(k,aj=ajl).dot(self.R_up(aj=ajl)).dot(self.R_down(aj=ajr)).dot(self.Q_power(m,aj=ajr))
-            # out = ajl*out[1,0]+(1-ajl)*out[0,1]
+
+
 
         elif up==0 and down==1:
-            #out=a+ajr-2*a*ajr+2*(1-a)*(1-Gamma)**m*(Gammap-ajr)
-            # out=self.R_down(aj=ajr).dot(self.Q_power(m,aj=ajr))
-            # out = a*out[1,0]+(1-a)*out[0,1]
             if a:
-                # NOTE: seems alright (speccial case to be tested)
                 out=2*a*(1-a)*(1-(1-Gamma)**m)+2*(1-a)*(1-Gamma)**m*Gammap
             else:
                 out=Gammap
 
         elif down==0:
-            # NOTE: should be alright
-            # out=self.Q_power(m,aj=ajr)
-            # out = ajr*out[1,0]+(1-ajr)*out[0,1]
             out=2*ajr*(1-ajr)*(1-(1-Gamma)**m)
 
         return out
 
     def epsilon(self,f2,fk,fk2):
-        # NOTE:  in the notation of the paper this is epsilon-1, to avoid
-        # too many distinct cases
         L=self.pattern_len
         out=0.
         if fk==0:
@@ -154,7 +147,6 @@ class MF_patternWalker(rw.fullProbPatternWalker):
             else:
                 out=f2*self.pattern_len
         else:
-            # f2=f2/fk2
             dk1_inv_exp=(1-(1-fk)**(self.pattern_len+1))/((self.pattern_len+1)*fk)
             out=-1+(1+L*f2*fk2/(1-fk)-fk2*(1-fk-f2)/(fk*(1-fk)))*dk1_inv_exp+fk2*(1-fk-f2)/(fk*(1-fk))
 
@@ -192,7 +184,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
     def sub_root_cluster_eq_ratio(self):
         #eq prob of cluster divided by eq prob of articulation pt, here the node under the root
-        #just under the root things are a bit messy, hence the following epsilons
+
+        #just under the root we need to distinguish two different paths, namely,
+        # the one going over the root and the ones staying in the target-part
         e_r=1+self.epsilon(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
         e_u=1+self.epsilon(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
 
@@ -225,7 +219,12 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        #just under the root things are a bit messy, hence the following epsilons
+        """
+        calculate C_MF based on the functions defined above.
+        # TODO: remove arguments other than self as none of them are needed
+        """
+        #just under the root we need to distinguish two different paths, namely,
+        # the one going over the root and the ones staying in the target-part
         e_r=1+self.epsilon(self.f(2,0,0,0),self.f(self.h-2,0,0,0),self.f(self.h,0,0,0))
         e_u=1+self.epsilon(self.f(1,1,0,0),self.f(self.h-2,0,0,0),self.f(self.h-1,1,0,0))
         cord_weight_list =\
@@ -283,6 +282,9 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out
 
     def approx_MTM(self,nodelist=None):
+        """
+        return approximate mean transition matrix calculated analytically
+        """
         if nodelist is None:
             nodelist=[self.root]+list( self.nodes -set([self.root,self.target_node])  )+[self.target_node]
         out=nx.DiGraph()
@@ -293,6 +295,10 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         return out,nx.to_numpy_array(out,nodelist=nodelist)
 
     def mean_out_weights(self,node):
+        """
+        return (approximate) mean weights of edges leaving node.
+        determines path 5-label and distinguishes cases accordingly
+        """
         neigh=list(self.neighbors(node))
         out=[]
         try:
@@ -377,7 +383,12 @@ class MF_patternWalker(rw.fullProbPatternWalker):
 
 
 class overlap_MF_patternWalker(MF_patternWalker):
-    #does all of the above with the correct parameters as given by G
+    """
+    class to incorporate overlap into MF_patternwalker methods. defines a new f
+    using MF_patternwalker.f, overwrites root_cluster_eq_ratio (as different parts
+    have different overlaps with target-part) and MF_mfpt (same reason)
+
+    """
     def __init__(self,c=4,h=3,*args,**params):
         self.c=c
         self.h=h
@@ -462,8 +473,6 @@ class overlap_MF_patternWalker(MF_patternWalker):
 
     def root_cluster_eq_ratio(self):
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
-        # NOTE: This could be done using the mean weight function directly,
-        #but doing it this way, we see if the cancellations in our formula are right
 
         branch_weights=[(1+\
             self.epsilon(
@@ -507,7 +516,8 @@ class overlap_MF_patternWalker(MF_patternWalker):
         return out
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        #just under the root things are a bit messy, hence the following epsilons
+        #just under the root we need to distinguish two different paths, namely,
+        # the one going over the root and the ones staying in the target-part
 
         branch_weights=[(1+\
             self.epsilon(
@@ -553,7 +563,12 @@ class overlap_MF_patternWalker(MF_patternWalker):
         return out
 
 class MF_patternWalker_general(rw.fullProbPatternWalker):
-
+    """
+    reproduces the methods f, epsilon
+    of overlap_MF_patternWalker but without assuming that
+    the tree is a c-ary tree.
+    Method sets all edge weights to their predicted mean value
+    """
     def __init__(self,*args,**params):
         super(MF_patternWalker_general,self).__init__(*args,**params)
         self.set_weights()
@@ -672,8 +687,6 @@ class MF_patternWalker_general(rw.fullProbPatternWalker):
         elif node==self.root:
             c = len(neigh)
             h = node_coordinates[0]+1
-            #the mu's aren't strictly required here, but we need them for
-            #the overlap case
             weights=[(1+\
                 self.epsilon(
                     self.f(0,1,1,0,mu),\
@@ -710,8 +723,6 @@ class MF_patternWalker_general(rw.fullProbPatternWalker):
                     out[(node,neighbor)]=e_r*normalisation
 
         elif self.root in neigh:
-            # coordinates=list(self.nodes[node]['coordinates'])
-            ## TODO: check back if this is important
             node_coordinates[2]=0 # easier access to targetwards and opposite neighbour
             c = len(neigh)-1
             h = node_coordinates[0]+1
@@ -729,7 +740,6 @@ class MF_patternWalker_general(rw.fullProbPatternWalker):
 
         else:
             c=len(neigh)-1
-            # coordinates=list(self.nodes[node]['coordinates'])
             connector=[2,0,0,0] # connection between targetwards and "opposite" neighbour
             if node_coordinates[3]>0:
                 ## TODO: check back to see if this is important
@@ -741,8 +751,7 @@ class MF_patternWalker_general(rw.fullProbPatternWalker):
                 self.f( *node_coordinates ),
                 self.f( *[node_coordinates[i]+connector[i] for i in range(4)]
                 ))
-            # TODO: following line with tightness 0/1 suitable for unit test
-            #print('e:',e,self.nodes[node]['coordinates'],self.f(*coordinates))
+
             for neighbor in neigh:
                 #counter-clockwise. first targetwards, then children
                 if neighbor==toward_target:
@@ -858,8 +867,6 @@ class MFPropertiesCAryTrees(overlap_MF_patternWalker):
 
     def root_cluster_eq_ratio(self):
         #eq prob of cluster divided by eq prob of articulation pt, here the root itself
-        # NOTE: This could be done using the mean weight function directly,
-        #but doing it this way, we see if the cancellations in our formula are right
 
         branch_weights=[(1+\
             self.epsilon(
@@ -903,7 +910,8 @@ class MFPropertiesCAryTrees(overlap_MF_patternWalker):
         return out
 
     def MF_mfpt(self,ajl=None,ajr=None,a=None,Gamma=None,Gammap=None,**kwargs):
-        #just under the root things are a bit messy, hence the following epsilons
+        #just under the root we need to distinguish two different paths, namely,
+        # the one going over the root and the ones staying in the target-part
 
         branch_weights=[(1+\
             self.epsilon(
@@ -950,8 +958,7 @@ class MFPropertiesCAryTrees(overlap_MF_patternWalker):
 
 def MF_mfpt_cary_tree(*args):
     """
-    dirty but works: wrapper for MFPropertiesCAryTrees.MF_mfpt
-    # TODO: think about vectorisation.
+    wrapper for MFPropertiesCAryTrees.MF_mfpt
     """
     #c,h,pattern_len,a_root,a_low,\
     # a_high,overlap,Gamma,Gamma_root
