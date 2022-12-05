@@ -106,4 +106,6 @@ returns the complexity $C$.
 
 ## Requirements
 
+(./requirements.txt)
+
 Build and tested under Python 3.7.
