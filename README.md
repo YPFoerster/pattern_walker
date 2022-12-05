@@ -106,4 +106,13 @@ returns the complexity $C$.
 
 ## Requirements
 
-Build and tested under Python 3.7.
+gensim==4.1.2
+matplotlib==3.5.1
+naming==0.7.0
+networkx==2.6.3
+nltk==3.7
+numpy==1.21.4
+pandas==1.3.4
+scikit_learn==1.1.3
+scipy==1.7.3
+spacy==3.4.3
