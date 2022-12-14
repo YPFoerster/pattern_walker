@@ -23,7 +23,7 @@ This hierarchy serves as a "background" for the patternWalker:
 ```python 
 Walker=fullProbPatternWalker(tree, root, L, a_root, a_low, a_high, Delta, Gamma, Gamma_root)
 ```
-\texttt{fullProbPatternWalker} is the full model considered in the corresponding article; the more primitive class \texttt{patternWalker} takes fewer parameters.
+\texttt{fullProbPatternWalker} is the full model considered in the [corresponding article](http://dx.doi.org/10.1088/2632-072X/ac8e48); the more primitive class \texttt{patternWalker} takes fewer parameters.
 The parameters are L and Delta are nonegative and integer, and the remaining parameters can be between $0$ and $1$. Moreover, a_low and a_high should obey
 
 $$
