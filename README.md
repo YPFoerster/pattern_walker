@@ -19,11 +19,12 @@ First create rooted tree with edges directed away from the root (this is imporan
 ```python
 tree,root = utils.balanced_ditree(c,h)
 ```
-This hierarchy serves as a "background" for the patternWalker
+This hierarchy serves as a "background" for the patternWalker:
 ```python 
-Walker=patternWalker(tree, root, L, a_root, a_low, a_high, Delta, Gamma, Gamma_root)
+Walker=fullProbPatternWalker(tree, root, L, a_root, a_low, a_high, Delta, Gamma, Gamma_root)
 ```
-with nonegative, integer L and Delta, and the remaining parameters between $0$ and $1$. In fact, a_low and a_high should obey
+\texttt{fullProbPatternWalker} is the full model considered in the corresponding article; the more primitive class \texttt{patternWalker} takes fewer parameters.
+The parameters are L and Delta are nonegative and integer, and the remaining parameters can be between $0$ and $1$. Moreover, a_low and a_high should obey
 
 $$
 \begin{align}
