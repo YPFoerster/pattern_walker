@@ -12,6 +12,7 @@ trees and derived patternwalker classes that compute the complexity $C$ associat
 ## Usage
 
 Some basic commands involving the main classes and module functions. Head over to [examples](examples/) to see them in application.
+The Jupyer notebook referred to in my thesis can be found in the folder [inference](inference/).
 
 ### Creating a patternWalker instance
 
