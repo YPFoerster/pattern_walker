@@ -12,6 +12,7 @@ trees and derived patternwalker classes that compute the complexity $C$ associat
 ## Usage
 
 Some basic commands involving the main classes and module functions. Head over to [examples](examples/) to see them in application.
+The Jupyer notebook referred to in my thesis can be found in the folder [inference](inference/).
 
 ### Creating a patternWalker instance
 
@@ -19,11 +20,12 @@ First create rooted tree with edges directed away from the root (this is imporan
 ```python
 tree,root = utils.balanced_ditree(c,h)
 ```
-This hierarchy serves as a "background" for the patternWalker
+This hierarchy serves as a "background" for the patternWalker:
 ```python 
-Walker=patternWalker(tree, root, L, a_root, a_low, a_high, Delta, Gamma, Gamma_root)
+Walker=fullProbPatternWalker(tree, root, L, a_root, a_low, a_high, Delta, Gamma, Gamma_root)
 ```
-with nonegative, integer L and Delta, and the remaining parameters between $0$ and $1$. In fact, a_low and a_high should obey
+\texttt{fullProbPatternWalker} is the full model considered in the [corresponding article](http://dx.doi.org/10.1088/2632-072X/ac8e48); the more primitive class \texttt{patternWalker} takes fewer parameters.
+The parameters are L and Delta are nonegative and integer, and the remaining parameters can be between $0$ and $1$. Moreover, a_low and a_high should obey
 
 $$
 \begin{align}
