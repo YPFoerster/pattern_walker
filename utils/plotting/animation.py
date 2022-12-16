@@ -37,7 +37,7 @@ class walkerAnimation(pw):
         self.s_a_low = paramField(self.fig,[0.1, 0.2, 0.35, 0.03],r'$a_l$', 0., 1., valinit=self.a_low, valstep=0.1 )
         self.s_beta_low = paramField(self.fig,[0.1, 0.25, 0.35, 0.03],r'$\beta_l$', 0., 1., valinit=0., valstep=0.1 )
 
-        self.s_overlap = paramField(self.fig,[0.1, 0.3, 0.35, 0.03],r'$\Delta$', 0., int(self.pattern_len*(self.c-2)/2), valinit=self.overlap, valstep=1 )
+        self.s_overlap = paramField(self.fig,[0.1, 0.3, 0.35, 0.03],r'$\Delta$', 0., int(self.pattern_len*(self.c-1)/2), valinit=self.overlap, valstep=1 )
 #         self.ax_a = plt.axes([0.1, 0.1, 0.35, 0.03])#, facecolor=axcolor)
 #         s_a = Slider(ax_a, r'$a$', 0., 1., valinit=a_root, valstep=0.1)
 
