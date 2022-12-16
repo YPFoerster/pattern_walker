@@ -1,14 +1,8 @@
 # data and text processing
 import json
 from sklearn.feature_extraction.text import CountVectorizer,TfidfTransformer,TfidfVectorizer
-from sklearn.utils import shuffle
-from nltk.corpus import stopwords
 import spacy
 
-import gensim
-import gensim.corpora as corpora
-from gensim.utils import simple_preprocess
-from gensim.models import CoherenceModel
 
 #technical packages
 import numpy as np
@@ -18,7 +12,6 @@ from itertools import count
 
 #visualisation
 import matplotlib.pyplot as plt
-plt.style.use('my-paperstyle')
 from networkx.drawing.nx_agraph import graphviz_layout
 
 #handy
@@ -448,39 +441,3 @@ def get_vocabs(parts_flat,ranker=get_most_freq_words,**kwargs):
 
     part_masks = [ make_part_mask(full_vocab,part) for part in part_vocab ]
     return full_vocab, part_vocab, part_masks
-
-def most_freq_topic_words(texts,num_top_terms,tokenizer=doc_lemmatizer,**kwargs):
-# corpus=corpus,
-#                                        id2word=id2word,
-#                                        num_topics=7,
-#                                        random_state=100,
-#                                        update_every=1,
-#                                        chunksize=2000,
-#                                        passes=10,
-#                                        alpha="auto"
-    words = []
-    for text in texts:
-        new = tokenizer(text)
-        words.append(new)
-
-    id2word = corpora.Dictionary(words)
-
-    corpus = []
-    for text in words:
-        new = id2word.doc2bow(text)
-        corpus.append(new)
-
-    lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
-                                                id2word=id2word,
-                                                **kwargs
-                                            )
-
-    top_glossary=[]
-    counts = []
-    for topic in lda_model.show_topics():
-        id=topic[0]
-        temp = lda_model.show_topic(id)[:num_top_terms]
-        top_glossary += [ tup[0] for tup in temp ]
-        counts += [ tup[1] for tup in temp ]
-    # top_glossary=list(set(top_glossary))
-    return top_glossary, counts

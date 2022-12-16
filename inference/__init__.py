@@ -1,1 +1,1 @@
-from utils.utils import *
+from pattern_walker.inference.utils import *
