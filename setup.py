@@ -2,7 +2,7 @@ from setuptools import setup,find_packages
 
 
 setup(name='pattern_walker',
-      version='1.0',
+      version='2.0',
       description='A random walker model for browsing the law.',
       url='http://github.com/YPFoerster/pattern_walker',
       author='Yanik Foerster',
