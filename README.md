@@ -8,7 +8,7 @@
 The main module implements the patternwalker model (simplified and with full set of parameters). Submodules incorporate several utilities, wrappers for plotting
 trees and derived patternwalker classes that compute the complexity $C$ associated with the given set of parameters. Patternwalker classes are derived from networkx.DiGraph.
 
-##Installation
+## Installation
 
 Install using Python pip, running
 ```
