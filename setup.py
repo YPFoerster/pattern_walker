@@ -1,7 +1,7 @@
 from setuptools import setup,find_packages
 
 
-setup(name='patternwalker',
+setup(name='pattern_walker',
       version='2.0',
       description='A random walker model for browsing the law.',
       url='http://github.com/YPFoerster/pattern_walker',
