@@ -17,8 +17,6 @@ from networkx.drawing.nx_agraph import graphviz_layout
 #handy
 import pickle
 import sys
-sys.path.append('../')
-import naming
 
 
 
