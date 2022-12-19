@@ -953,7 +953,7 @@ class MFPropertiesCAryTrees(overlap_MF_patternWalker):
 
         eq_ratio_list = [ self.root_cluster_eq_ratio() ] + [self.sub_root_cluster_eq_ratio()] +[ self.eq_ratio(self.h-k) for k in range(2,self.h) ]
 
-        out = np.sum(np.sum( [[eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)] for i in range(1,self.h+1)] ))
+        out = np.sum( [ np.sum([eq_ratio_list[k]*numerators[k]/np.prod(cord_weight_list[k:i]) for k in range(i)]) for i in range(1,self.h+1)] )
         return out
 
 def MF_mfpt_cary_tree(*args):
