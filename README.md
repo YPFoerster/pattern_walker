@@ -18,7 +18,7 @@ for the latest version.
 
 ## Usage
 
-Some basic commands involving the main classes and module functions. Head over to [examples](examples/) to see them in application.
+Some basic commands involving the main classes and module functions. Head over to [examples](pattern_walker/examples/) to see them in application.
 
 ### Creating a patternWalker instance
 
@@ -110,17 +110,13 @@ The class is derived from fullProbPatternWalker, so it has all the basic functio
 ```python
 Walker.MF_mfpt()
 ```
-returns the complexity $C$.
+returns the complexity $C_\textup{MF}$.
 
 ## Requirements
 
-gensim==4.1.2
-matplotlib==3.5.1
-naming==0.7.0
-networkx==2.6.3
-nltk==3.7
-numpy==1.21.4
-pandas==1.3.4
-scikit_learn==1.1.3
-scipy==1.7.3
-spacy==3.4.3
+Find the requirements [here](requirements.txt).
+spacy uses the Enlish language pipeline
+[en_core_web_sm](https://spacy.io/models/en#en_core_web_sm). Click
+[here](https://spacy.io/api/cli#download) for instructions.
+Additionally, [pygraphviz](https://pygraphviz.github.io) is used for some of
+the visualisations.
