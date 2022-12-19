@@ -264,7 +264,7 @@ class MF_patternWalker(rw.fullProbPatternWalker):
         W/=number_samples
         return W
 
-    def MTM_mfpt(self, number_samples: int=0, nodelist: list=None) -> np.float():
+    def MTM_mfpt(self, number_samples: int=0, nodelist: list=None) -> float:
         """
         Calculates MFPT based on mean transition matrix, MTM. If number_samples=0,
         the approximate function approx_MTM is used. Else we sample the MTM.
